@@ -60,8 +60,6 @@ const LOGOS = [
   ['deboissy', 'De Boissy', 'Snell Roundhand, "Brush Script MT", cursive', '700'],
   ['luxamed', 'LUXAMED®', SANS, '700'],
   ['holtex', '✚ Holtex', SANS, '700'],
-  ['cardionet', '♡ cardionet', SANS, '400'],
-  ['biomed', 'BIOMED', SANS, '700'],
 ];
 
 /** Génère les visuels de démo (non enregistrés en base, recréés à chaque lancement) */
@@ -104,8 +102,8 @@ export async function registerBuiltins() {
     g.font = `500 64px ${SANS}`;
     g.textAlign = 'center';
     g.fillStyle = '#ffffff';
-    const names = ['♡ cardionet', 'DDM', 'De Boissy', '⫽ECM', '✚ Holtex', 'LUXAMED®', '♡ Spengler'];
-    names.forEach((n, i) => g.fillText(n, 300 + i * 386, 480));
+    const names = ['DDM', 'De Boissy', '⫽ECM', '✚ Holtex', 'LUXAMED®', '♡ Spengler'];
+    names.forEach((n, i) => g.fillText(n, 340 + i * 448, 480));
     await add('banner', c, 'Bannière Spengler Group');
   }
   // Caisson vertical Spengler Group

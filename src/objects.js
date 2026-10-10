@@ -9,7 +9,7 @@ import { kelvinToColor, rad, rng } from './util.js';
 import { DEVICE_CATALOG, buildDevice } from './devices.js';
 import { PEOPLE_CATALOG, buildPerson, SKINS } from './people.js';
 
-export const BRANDS = ['Spengler', 'BIOMED', 'ECM', 'Maison de Boissy', 'Luxamed', 'Holtex', 'DDM', 'Cardionet'];
+export const BRANDS = ['Spengler', 'ECM', 'Maison de Boissy', 'Luxamed', 'Holtex', 'DDM'];
 export const CATEGORIES = ['Catalogue Spengler Medical', 'Structure', 'Mobilier', 'PLV & écrans', 'Éclairage', 'Décor', 'Personnages', 'Gabarits produits'];
 
 const G = { gMargin: 0, gRadius: 0 };
@@ -61,7 +61,7 @@ export const CATALOG = [
 
   { type: 'product', label: 'Boîte produit (pack-shot)', cat: 'Gabarits produits', kw: 'packshot carton', d: { w: 0.3, d: 0.2, h: 0.25, shape: 'boite', finish: 'blanc_mat', brand: 'Spengler' } },
   { type: 'product', label: 'Produit détouré (photo)', cat: 'Gabarits produits', kw: 'silhouette photo', d: { w: 0.4, d: 0.3, h: 0.5, shape: 'silhouette', brand: 'Spengler' } },
-  { type: 'product', label: 'Appareil de table', cat: 'Gabarits produits', kw: 'device', d: { w: 0.3, d: 0.25, h: 0.12, shape: 'appareil', finish: 'blanc_laque', brand: 'BIOMED' } },
+  { type: 'product', label: 'Appareil de table', cat: 'Gabarits produits', kw: 'device', d: { w: 0.3, d: 0.25, h: 0.12, shape: 'appareil', finish: 'blanc_laque', brand: 'Spengler' } },
   { type: 'product', label: "Lampe d'examen sur pied", cat: 'Gabarits produits', kw: 'luxamed éclairage', d: { w: 0.6, d: 0.6, h: 1.7, shape: 'lampe', finish: 'blanc_laque', brand: 'Luxamed' } },
   { type: 'product', label: 'Produit cylindrique', cat: 'Gabarits produits', kw: 'flacon tube', d: { w: 0.12, d: 0.12, h: 0.3, shape: 'cylindre', finish: 'blanc_mat', brand: 'Spengler' } },
   ...DEVICE_CATALOG.map((p) => ({
