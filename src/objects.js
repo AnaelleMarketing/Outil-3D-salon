@@ -523,10 +523,11 @@ B.storage = (o, ud) => {
         hinge.add(boxAt(0.12, 0.02, 0.02, lw - 0.1, 1.05, out, getMaterial('metal_brosse')));
         hinge.rotation.y = -sgn * rad(o.doorOpen || 0);
       } else {
-        hinge.position.set(fixed + sgn * 0.02, 0, a);
-        hinge.add(boxAt(0.04, dh - 0.01, lw, 0, dh / 2, lw / 2, getMaterial('blanc_mat')));
-        hinge.add(boxAt(0.02, 0.02, 0.12, out, 1.05, lw - 0.1, getMaterial('metal_brosse')));
-        hinge.rotation.y = sgn * rad(o.doorOpen || 0);
+        // porte latérale : gonds côté avant, elle s'ouvre vers l'allée
+        hinge.position.set(fixed + sgn * 0.02, 0, b);
+        hinge.add(boxAt(0.04, dh - 0.01, lw, 0, dh / 2, -lw / 2, getMaterial('blanc_mat')));
+        hinge.add(boxAt(0.02, 0.02, 0.12, out, 1.05, -(lw - 0.1), getMaterial('metal_brosse')));
+        hinge.rotation.y = -sgn * rad(o.doorOpen || 0);
       }
       hinge.userData.door = true;
       g.add(hinge);

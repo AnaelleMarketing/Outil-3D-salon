@@ -1140,7 +1140,7 @@ export class App {
       const id = hit && this.objIdOf(hit.object);
       const o = id && this.obj(id);
       if (!o || !TYPES[o.type]?.doors || (o.type === 'counter' && (!o.doors || o.doors === 'aucune')) || (o.type === 'storage' && o.doorSide === 'none')) return;
-      const open = (o.doorOpen || 0) > 0 ? 0 : 95;
+      const open = (o.doorOpen || 0) > 0 ? 0 : 90;
       if (this.readOnly) {
         // en mode visite : ouverture visuelle seulement (rien n'est enregistré)
         o.doorOpen = open;

@@ -830,6 +830,21 @@ export class UI {
             h('button', { class: 'ibtn danger', title: 'Supprimer (Suppr)', onClick: () => a.remove() }, icon('trash')),
           ),
     );
+    // bouton d'ouverture des portes (réserve, comptoir avec rangement)
+    const hasDoors = T.doors && !(o.type === 'counter' && (!o.doors || o.doors === 'aucune')) && !(o.type === 'storage' && o.doorSide === 'none');
+    if (hasDoors) {
+      const isOpen = (o.doorOpen || 0) > 0;
+      body.append(
+        h(
+          'button',
+          { class: 'btn full door-btn' + (isOpen ? '' : ' primary'), onClick: () => a.update(o.id, { doorOpen: isOpen ? 0 : 90 }) },
+          isOpen ? 'Fermer les portes' : 'Ouvrir les portes',
+        ),
+        h('p', { class: 'muted', style: { marginTop: '4px' } }, 'Ou double-cliquez sur le meuble dans la vue 3D. ' + (o.type === 'counter' ? 'Les portes sont à l’arrière, côté exposant.' : '')),
+      );
+    } else if (o.type === 'counter') {
+      body.append(h('p', { class: 'muted' }, 'Ce comptoir est plein : choisissez « 1 porte » ou « 2 portes » dans « Rangement » pour pouvoir l’ouvrir.'));
+    }
     const alerts = a.alerts.filter((x) => x.ids.includes(o.id));
     if (alerts.length) body.append(h('div', { class: 'obj-alerts' }, alerts.map((x) => h('div', { class: x.level }, x.msg))));
 
@@ -884,7 +899,7 @@ export class UI {
       } else if (F.kind === 'num') {
         dimsBox.append(field(F.label, h('input', { type: 'number', 'data-key': k, min: F.min, max: F.max, step: F.step || 1, value: v ?? F.min, disabled: ro, onChange: (e) => upd({ [k]: parseFloat(e.target.value) }) })));
       } else if (F.kind === 'range') {
-        const out = h('span', { class: 'rv' }, fmtRange(k, v));
+        const out = h('span', { class: 'rv' }, fmtRange(k, v ?? (k === 'doorOpen' ? 0 : v)));
         other.append(
           field(
             F.label,
@@ -993,7 +1008,7 @@ export class UI {
         )
       : null;
     body.append(h('h4', {}, 'Dimensions et finitions'), chips, dimsBox, other);
-    if (T.doors) body.append(h('p', { class: 'muted' }, 'Astuce : double-cliquez sur le meuble dans la vue 3D pour ouvrir ou fermer ses portes.'));
+
 
     if (o.type === 'model') {
       const m = assets.getMeta(o.model);

@@ -396,3 +396,4 @@ body.hide-left .left, body.hide-right .right { display: none; }
 .topbar .brand:hover { opacity: .75; }
 .splash-foot a { color: rgba(211,226,231,.85); }
 .splash-foot { z-index: 3; }
+.door-btn { margin: 8px 0 0; height: 38px; font-weight: 600; }
