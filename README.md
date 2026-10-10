@@ -13,6 +13,15 @@ npm run dev      # http://localhost:5180
 
 Version optimisée : `npm run build && npm run preview` (même port).
 
+## Mise en ligne
+
+Le dépôt GitHub (privé) est relié au projet Vercel `stand3d-spengler` :
+chaque `git push` sur `main` déploie automatiquement https://stand3d-spengler.vercel.app.
+
+```bash
+git add -A && git commit -m "Description du changement" && git push
+```
+
 Les projets, visuels et la bibliothèque sont enregistrés automatiquement dans le navigateur (IndexedDB),
 avec un historique de versions (toutes les 10 min ou à la demande).
 
