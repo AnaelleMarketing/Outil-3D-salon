@@ -1134,6 +1134,23 @@ export class App {
     const el = v.renderer.domElement;
     el.addEventListener('contextmenu', (e) => e.preventDefault());
     el.addEventListener('pointerdown', (e) => this.onDown(e));
+    el.addEventListener('dblclick', (e) => {
+      if (this.placing || this.tool) return;
+      const hit = this.hits(e, { ground: false })[0];
+      const id = hit && this.objIdOf(hit.object);
+      const o = id && this.obj(id);
+      if (!o || !TYPES[o.type]?.doors || (o.type === 'counter' && (!o.doors || o.doors === 'aucune')) || (o.type === 'storage' && o.doorSide === 'none')) return;
+      const open = (o.doorOpen || 0) > 0 ? 0 : 95;
+      if (this.readOnly) {
+        // en mode visite : ouverture visuelle seulement (rien n'est enregistré)
+        o.doorOpen = open;
+        this.sync();
+        return;
+      }
+      this.selected = id;
+      this.update(id, { doorOpen: open });
+      this.ui.toast(open ? 'Portes ouvertes (double-clic pour fermer).' : 'Portes fermées.');
+    });
     window.addEventListener('pointermove', (e) => this.onMove(e));
     window.addEventListener('pointerup', (e) => this.onUp(e));
     el.addEventListener(

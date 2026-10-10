@@ -22,13 +22,13 @@ export const CATALOG = [
   { type: 'banner', label: 'Bannière suspendue + truss', cat: 'Structure', kw: 'bandeau enseigne suspendu', d: { w: 6, d: 0.08, h: 1.4, y: 4.2, finish: 'blanc_laque', radius: 0.25, truss: true, spots: 5, gMargin: 0.08, gRadius: 0.22, kelvin: 4000, intensity: 6 } },
   { type: 'kakemono', label: 'Kakémono suspendu', cat: 'Structure', kw: 'kakemono bannière textile suspendu visuel', d: { w: 0.85, h: 2, mount: 'suspendu', y: 1.6, imageFit: 'cover' } },
   { type: 'truss', label: 'Structure truss', cat: 'Structure', kw: 'poutre alu', d: { w: 4, y: 4, finish: 'metal_brosse' } },
-  { type: 'storage', label: 'Réserve fermée avec porte', cat: 'Structure', kw: 'vestiaire stockage local', d: { w: 2, d: 1, h: 2.5, finish: 'blanc_laque', doorSide: 'front', doorPos: 0.25, ...G } },
+  { type: 'storage', label: 'Réserve fermée avec porte', cat: 'Structure', kw: 'vestiaire stockage local', d: { w: 2, d: 1, h: 2.5, finish: 'blanc_laque', doorSide: 'front', doorPos: 0.25, doorOpen: 0, ...G } },
   { type: 'podium', label: 'Estrade', cat: 'Structure', kw: 'plancher scène', d: { w: 2, d: 2, h: 0.1, finish: 'bois_chene' } },
   { type: 'steps', label: 'Marches', cat: 'Structure', kw: 'escalier', d: { w: 1, d: 0.6, h: 0.3, finish: 'gris_clair', count: 2 } },
   { type: 'shelf', label: 'Étagère murale', cat: 'Structure', kw: 'tablette', d: { w: 1, d: 0.25, h: 0.03, y: 1.3, finish: 'blanc_laque' } },
   { type: 'niche', label: 'Niche murale', cat: 'Structure', kw: 'alcôve vitrine', d: { w: 0.6, d: 0.3, h: 0.8, y: 1, finish: 'blanc_laque', led: true } },
 
-  { type: 'counter', label: "Comptoir d'accueil", cat: 'Mobilier', kw: 'banque accueil desk', d: { w: 1.2, d: 0.6, h: 1.05, finish: 'blanc_laque', led: 'deux', gMargin: 0.08, gRadius: 0 } },
+  { type: 'counter', label: "Comptoir d'accueil", cat: 'Mobilier', kw: 'banque accueil desk', d: { w: 1.2, d: 0.6, h: 1.05, finish: 'blanc_laque', led: 'deux', doors: 'deux', doorOpen: 0, gMargin: 0.08, gRadius: 0 } },
   { type: 'tableHaute', label: 'Table haute (mange-debout)', cat: 'Mobilier', kw: 'mange debout bar', d: { w: 0.6, d: 1.2, h: 1.1, finish: 'blanc_laque' } },
   { type: 'mangeDebout', label: 'Mange-debout rond', cat: 'Mobilier', kw: 'guéridon bar', d: { w: 0.7, d: 0.7, h: 1.1, finish: 'blanc_laque' } },
   { type: 'mangeDebout', label: 'Mange-debout avec housse lycra', cat: 'Mobilier', kw: 'cocktail bar housse tissu', d: { w: 0.8, d: 0.8, h: 1.1, finish: 'textile', color: '#ffffff', housse: true } },
@@ -81,12 +81,12 @@ export const TYPES = {
   lightbox: { label: 'Caisson lumineux', fields: ['w', 'h', 'd', 'y', 'glow', 'doubleSided', 'finish', 'color'], images: ['image', 'imageBack'] },
   banner: { label: 'Bannière', fields: ['w', 'h', 'd', 'y', 'radius', 'truss', 'spots', 'kelvin', 'intensity', 'finish', 'color'], images: ['image', 'imageBack'], graphic: true, hanging: true },
   truss: { label: 'Truss', fields: ['w', 'y', 'finish'], hanging: true },
-  storage: { label: 'Réserve', fields: ['w', 'd', 'h', 'doorSide', 'doorPos', 'finish', 'color'], images: ['image'], graphic: true, hollow: true },
+  storage: { label: 'Réserve', fields: ['w', 'd', 'h', 'doorSide', 'doorPos', 'doorOpen', 'finish', 'color'], doors: true, images: ['image'], graphic: true, hollow: true },
   podium: { label: 'Estrade', fields: ['w', 'd', 'h', 'finish', 'color'], support: true },
   steps: { label: 'Marches', fields: ['w', 'd', 'h', 'count', 'finish', 'color'] },
   shelf: { label: 'Étagère', fields: ['w', 'd', 'h', 'y', 'finish', 'color'], mounted: true, support: true },
   niche: { label: 'Niche', fields: ['w', 'd', 'h', 'y', 'led', 'finish', 'color'], mounted: true, support: true },
-  counter: { label: 'Comptoir', fields: ['w', 'd', 'h', 'led', 'finish', 'color', 'top'], images: ['image'], graphic: true, support: true },
+  counter: { label: 'Comptoir', fields: ['w', 'd', 'h', 'doors', 'doorOpen', 'led', 'finish', 'color', 'top'], doors: true, images: ['image'], graphic: true, support: true },
   tableHaute: { label: 'Table haute', fields: ['w', 'd', 'h', 'finish', 'color'], support: true },
   mangeDebout: { label: 'Mange-debout', fields: ['w', 'h', 'housse', 'finish', 'color'], support: true },
   barChair: { label: 'Chaise haute', fields: ['style', 'seatH', 'w', 'd', 'h', 'finish', 'color', 'legs'] },
@@ -131,6 +131,8 @@ export const FIELD = {
   doorSide: { label: 'Porte', kind: 'select', options: { front: 'Face avant', left: 'Côté gauche', right: 'Côté droit', back: 'Arrière', none: 'Sans porte' } },
   doorPos: { label: 'Position de la porte', kind: 'range', min: 0, max: 1, step: 0.05 },
   housse: { label: 'Housse lycra', kind: 'bool' },
+  doors: { label: 'Rangement (côté exposant)', kind: 'select', options: { aucune: 'Plein, sans portes', une: '1 porte', deux: '2 portes' } },
+  doorOpen: { label: 'Ouverture des portes (°)', kind: 'range', min: 0, max: 110, step: 5 },
   kformat: { label: 'Format', kind: 'kformat', options: { '0.6x1.6': '60 × 160 cm', '0.8x2': '80 × 200 cm', '0.85x2': '85 × 200 cm', '1x2': '100 × 200 cm', '1.2x2': '120 × 200 cm', '1.5x2': '150 × 200 cm', libre: 'Sur mesure (largeur et hauteur ci-dessous)' } },
   style: { label: 'Modèle', kind: 'select', options: { classique: 'À dossier', coque: 'Coque design' } },
   seatH: { label: 'Hauteur d’assise', kind: 'len', min: 0.4 },
@@ -510,12 +512,24 @@ B.storage = (o, ud) => {
       const a = c - dw / 2;
       const b = c + dw / 2;
       segs.push([from, a, 0, h], [b, to, 0, h], [a, b, dh, h]);
-      const door = axis === 'x' ? boxAt(dw - 0.01, dh - 0.01, 0.04, c, dh / 2, fixed, getMaterial('blanc_mat')) : boxAt(0.04, dh - 0.01, dw - 0.01, fixed, dh / 2, c, getMaterial('blanc_mat'));
-      g.add(door);
-      const hx = axis === 'x' ? c + dw / 2 - 0.1 : fixed;
-      const hz = axis === 'x' ? fixed : c + dw / 2 - 0.1;
-      const out = axis === 'x' ? new THREE.Vector3(0, 0, Math.sign(fixed) * 0.035) : new THREE.Vector3(Math.sign(fixed) * 0.035, 0, 0);
-      g.add(boxAt(axis === 'x' ? 0.12 : 0.02, 0.02, axis === 'x' ? 0.02 : 0.12, hx + out.x, 1.05, hz + out.z, getMaterial('metal_brosse')));
+      // porte sur gonds (pivot au bord de l'ouverture), s'ouvre vers l'extérieur
+      const hinge = new THREE.Group();
+      const sgn = Math.sign(fixed) || 1;
+      const lw = dw - 0.01;
+      const out = sgn * 0.035;
+      if (axis === 'x') {
+        hinge.position.set(a, 0, fixed + sgn * 0.02);
+        hinge.add(boxAt(lw, dh - 0.01, 0.04, lw / 2, dh / 2, 0, getMaterial('blanc_mat')));
+        hinge.add(boxAt(0.12, 0.02, 0.02, lw - 0.1, 1.05, out, getMaterial('metal_brosse')));
+        hinge.rotation.y = -sgn * rad(o.doorOpen || 0);
+      } else {
+        hinge.position.set(fixed + sgn * 0.02, 0, a);
+        hinge.add(boxAt(0.04, dh - 0.01, lw, 0, dh / 2, lw / 2, getMaterial('blanc_mat')));
+        hinge.add(boxAt(0.02, 0.02, 0.12, out, 1.05, lw - 0.1, getMaterial('metal_brosse')));
+        hinge.rotation.y = sgn * rad(o.doorOpen || 0);
+      }
+      hinge.userData.door = true;
+      g.add(hinge);
     } else segs.push([from, to, 0, h]);
     for (const [a, b, y0, y1] of segs) {
       if (b - a < 0.001 || y1 - y0 < 0.001) continue;
@@ -580,7 +594,32 @@ function blockWithGraphic(o, ud, withTop) {
   const g = new THREE.Group();
   const mat = getMaterial(o.finish, o.color);
   const topT = withTop ? 0.03 : 0;
-  g.add(boxAt(o.w, o.h - topT, o.d, 0, (o.h - topT) / 2, 0, mat));
+  const nd = o.doors === 'deux' ? 2 : o.doors === 'une' ? 1 : 0;
+  if (!nd) g.add(boxAt(o.w, o.h - topT, o.d, 0, (o.h - topT) / 2, 0, mat));
+  else {
+    // caisson ouvert à l'arrière : façade, côtés, fond, étagère, portes sur gonds
+    const t = 0.02;
+    const bh = o.h - topT;
+    const inside = getMaterial('gris_clair');
+    g.add(boxAt(o.w, bh, t, 0, bh / 2, o.d / 2 - t / 2, mat));
+    for (const k of [-1, 1]) g.add(boxAt(t, bh, o.d - t, k * (o.w / 2 - t / 2), bh / 2, -t / 2, mat));
+    g.add(boxAt(o.w - 2 * t, t, o.d - t, 0, 0.06, -t / 2, inside), boxAt(o.w - 2 * t, t, o.d - 2 * t, 0, bh * 0.52, -t, inside));
+    g.add(boxAt(o.w, 0.06, t, 0, 0.03, -o.d / 2 + t / 2, mat)); // plinthe arrière
+    g.add(boxAt(o.w - 2 * t, t, o.d - t, 0, bh - t / 2, -t / 2, mat));
+    const dwid = (o.w - 0.006 * (nd + 1)) / nd;
+    const dhgt = bh - 0.08;
+    for (let i = 0; i < nd; i++) {
+      const left = nd === 1 || i === 0;
+      const hinge = new THREE.Group();
+      hinge.position.set(left ? -o.w / 2 + 0.003 : o.w / 2 - 0.003, 0.07, -o.d / 2 - 0.01);
+      const dir = left ? 1 : -1;
+      hinge.add(boxAt(dwid, dhgt, 0.018, (dir * dwid) / 2, dhgt / 2, 0, mat));
+      hinge.add(boxAt(0.012, 0.12, 0.012, dir * (dwid - 0.05), dhgt * 0.75, -0.015, getMaterial('metal_brosse')));
+      hinge.rotation.y = dir * rad(o.doorOpen || 0);
+      hinge.userData.door = true;
+      g.add(hinge);
+    }
+  }
   if (withTop) g.add(boxAt(o.w + 0.03, topT, o.d + 0.03, 0, o.h - topT / 2, 0, getMaterial(o.top || o.finish, o.top ? null : o.color)));
   ledStrips(g, o, o.w, o.h - topT, o.d);
   const m = o.gMargin ?? 0.05;

@@ -150,7 +150,7 @@ function meeting(inp, style, cx, cz, rotFace, f) {
 }
 
 function counter(style, x, z, dark) {
-  return [mk('counter', null, { name: "Comptoir d'accueil", x, z, w: 1.2, d: 0.6, h: 1.05, finish: style.furniture, led: 'deux', image: dark ? 'builtin:lockup-white' : 'builtin:lockup', imageFit: 'contain', gMargin: 0.1, zone: 'Accueil' })];
+  return [mk('counter', null, { name: "Comptoir d'accueil", x, z, w: 1.2, d: 0.6, h: 1.05, finish: style.furniture, led: 'deux', doors: 'deux', doorOpen: 0, image: dark ? 'builtin:lockup-white' : 'builtin:lockup', imageFit: 'contain', gMargin: 0.1, zone: 'Accueil' })];
 }
 
 function person(label, x, z, rot, extra = {}) {

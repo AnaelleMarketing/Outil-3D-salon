@@ -993,6 +993,7 @@ export class UI {
         )
       : null;
     body.append(h('h4', {}, 'Dimensions et finitions'), chips, dimsBox, other);
+    if (T.doors) body.append(h('p', { class: 'muted' }, 'Astuce : double-cliquez sur le meuble dans la vue 3D pour ouvrir ou fermer ses portes.'));
 
     if (o.type === 'model') {
       const m = assets.getMeta(o.model);
@@ -1969,6 +1970,6 @@ function fmtRange(k, v) {
   if (v == null) return '';
   if (k === 'kelvin') return v + ' K';
   if (k === 'doorPos') return Math.round(v * 100) + ' %';
-  if (k === 'tilt' || k === 'angle') return v + '°';
+  if (k === 'tilt' || k === 'angle' || k === 'doorOpen') return v + '°';
   return String(v);
 }
