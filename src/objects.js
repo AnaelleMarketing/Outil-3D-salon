@@ -72,7 +72,7 @@ export const CATALOG = [
     cat: 'Catalogue Spengler Medical',
     gamme: p.gamme,
     kw: [p.brand, p.gamme, p.ref].filter(Boolean).join(' '),
-    d: { model: p.model, color: p.color, brand: p.brand, gamme: p.gamme, ref: p.ref || '' },
+    d: { model: p.model, color: p.color, brand: p.brand, gamme: p.gamme, ref: p.ref || '', ...(p.params || {}) },
   })),
 ];
 
@@ -1132,7 +1132,7 @@ export function fromCatalog(entry) {
   return { type: entry.type, name: entry.label, x: 0, z: 0, y: 0, rot: 0, zone: '', ...JSON.parse(JSON.stringify(entry.d)) };
 }
 
-export const isSupport = (o) => !!TYPES[o.type]?.support;
+export const isSupport = (o) => !!TYPES[o.type]?.support || (o.type === 'device' && o.model === 'gueridon');
 export const isStackable = (o) => !!TYPES[o.type]?.stack;
 export const noCollide = (o) => {
   const t = TYPES[o.type] || {};

@@ -31,6 +31,20 @@ export const DEVICE_CATALOG = [
   { model: 'monitor', label: 'Vitalimate MINI – moniteur PNI + SpO2', brand: 'Spengler', gamme: 'Monitoring & ECG', ref: 'MON002', color: '#ffffff' },
   { model: 'ecgTablet', label: 'Cardiomate EVI 10" – tablette ECG + base imprimante', brand: 'Spengler', gamme: 'Monitoring & ECG', ref: '260051', color: '#ffffff' },
   { model: 'defib', label: 'Défibrillateur FRED PA-1', brand: 'Spengler', gamme: 'Monitoring & ECG', ref: 'SSDEFI04', color: '#c8102e' },
+  // guéridons (gamme GSH « Mobilier médical > Guéridons »)
+  ...[
+    ['OSA6040', 'Guéridon inox Holtex 60 × 40 × 90 cm, 2 plateaux amovibles', 'inox', 0.6, 0.4, 0.9, 2, false, true],
+    ['OSA6041', 'Guéridon inox Holtex 60 × 40 × 80 cm, 3 plateaux amovibles', 'inox', 0.6, 0.4, 0.8, 3, false, true],
+    ['OSA6042', 'Guéridon inox Holtex 60 × 40 × 80 cm, 2 plateaux avec tiroir', 'inox', 0.6, 0.4, 0.8, 2, true, true],
+    ['OSA7050', 'Guéridon inox Holtex 70 × 50 × 80 cm, 2 plateaux amovibles', 'inox', 0.7, 0.5, 0.8, 2, false, true],
+    ['OSA7051', 'Guéridon inox Holtex 70 × 50 × 80 cm, 3 plateaux amovibles', 'inox', 0.7, 0.5, 0.8, 3, false, true],
+    ['OSA7052', 'Guéridon inox Holtex 70 × 50 × 80 cm, 2 plateaux avec tiroir', 'inox', 0.7, 0.5, 0.8, 2, true, true],
+    ['OSA9060', 'Guéridon inox Holtex 90 × 55 × 80 cm, 2 plateaux amovibles', 'inox', 0.9, 0.55, 0.8, 2, false, true],
+    ['OM483601', 'Guéridon plastique 48,5 × 36,5 × 72 cm, 2 plateaux, sans poignée', 'plastique', 0.485, 0.365, 0.72, 2, false, false],
+    ['OM483602', 'Guéridon plastique 48,5 × 36,5 × 77 cm, 3 plateaux, sans poignée', 'plastique', 0.485, 0.365, 0.77, 3, false, false],
+    ['OM614502', 'Guéridon plastique 61,5 × 45 cm, 3 plateaux, avec poignées', 'plastique', 0.615, 0.45, 0.95, 3, false, true],
+    ['OM614501', 'Guéridon plastique 80 × 48 × 95 cm, 2 plateaux, avec poignées', 'plastique', 0.8, 0.48, 0.95, 2, false, true],
+  ].map(([ref, label, matiere, w, d, h, plateaux, tiroir, poignees]) => ({ model: 'gueridon', label, brand: matiere === 'inox' ? 'Holtex' : '', gamme: 'Guéridons', ref, color: matiere === 'inox' ? '#c3c7cb' : '#e3e6e7', params: { matiere, w, d, h, plateaux, tiroir, poignees } })),
   { model: 'negatoscope', label: 'Négatoscope 3 plages', brand: 'Holtex', gamme: 'Mobilier médical', ref: 'OTA1003', color: '#ffffff' },
   { model: 'divan', label: "Divan d'examen inox / noir", brand: 'Holtex', gamme: 'Mobilier médical', ref: 'OSA003_N', color: '#1d1e21' },
 ];
@@ -787,6 +801,74 @@ D.nomad = (o) => {
   unit.add(scr, btn);
   unit.position.y = 0.075;
   g.add(unit);
+  return g;
+};
+
+/* ---------- guéridons ---------- */
+
+function caster(x, z, dark) {
+  const g = new THREE.Group();
+  const wheel = cyl(0.032, 0.032, 0.022, M(dark ? '#3a3c40' : '#8d9196', 0.6), 0, 0.032, 0, 18);
+  wheel.rotation.x = Math.PI / 2;
+  g.add(wheel, box(0.03, 0.04, 0.03, M('#9aa0a6', 0.4, 0.6), 0, 0.075, 0));
+  g.position.set(x, 0, z);
+  return g;
+}
+
+/** Guéridon inox (tubes, arceaux, plateaux à galerie, tiroir) ou plastique (plateaux à rebord, poignées) */
+D.gueridon = (o) => {
+  const g = new THREE.Group();
+  const { matiere = 'inox', w = 0.6, d = 0.4, h = 0.8, plateaux = 2, tiroir = false, poignees = true } = o;
+  const inox = matiere === 'inox';
+  const metal = getMaterial('metal_brosse');
+  const tray = inox ? M('#c9ccd0', 0.35, 0.85) : M(o.color || '#e3e6e7', 0.55);
+  const post = inox ? metal : M('#b9bec3', 0.35, 0.7);
+  const base = 0.11; // hauteur roulettes
+  const topY = h - (poignees ? 0.12 : 0.03);
+  const ix = w / 2 - (inox ? 0.025 : 0.04);
+  const iz = d / 2 - (inox ? 0.025 : 0.04);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    g.add(caster(sx * ix, sz * iz, !inox));
+    g.add(cyl(inox ? 0.011 : 0.016, inox ? 0.011 : 0.016, topY - base + 0.02, post, sx * ix, base + (topY - base) / 2, sz * iz, 12));
+  }
+  // niveaux des plateaux
+  const levels = [];
+  const bottom = base + 0.1;
+  for (let i = 0; i < plateaux; i++) levels.push(bottom + ((topY - bottom) * i) / Math.max(1, plateaux - 1));
+  levels.forEach((y, i) => {
+    if (inox) {
+      g.add(box(w - 0.03, 0.012, d - 0.03, tray, 0, y, 0));
+      // galerie (rambarde basse) autour du plateau
+      const ry = y + 0.035;
+      for (const sz of [-1, 1]) {
+        const r = cyl(0.004, 0.004, w - 0.05, metal, 0, ry, sz * (d / 2 - 0.018), 6);
+        r.rotation.z = Math.PI / 2;
+        g.add(r);
+      }
+      for (const sx of [-1, 1]) {
+        const r = cyl(0.004, 0.004, d - 0.05, metal, sx * (w / 2 - 0.018), ry, 0, 6);
+        r.rotation.x = Math.PI / 2;
+        g.add(r);
+      }
+    } else {
+      g.add(box(w, 0.035, d, tray, 0, y, 0, 0.012));
+      const rim = M('#d6dadc', 0.55);
+      for (const sz of [-1, 1]) g.add(box(w - 0.02, 0.025, 0.012, rim, 0, y + 0.028, sz * (d / 2 - 0.008)));
+      for (const sx of [-1, 1]) g.add(box(0.012, 0.025, d - 0.02, rim, sx * (w / 2 - 0.008), y + 0.028, 0));
+    }
+    // tiroir sous le plateau supérieur
+    if (tiroir && i === plateaux - 1) {
+      g.add(box(w - 0.08, 0.1, d - 0.06, tray, 0, y - 0.07, 0));
+      g.add(box(0.14, 0.012, 0.012, metal, 0, y - 0.07, d / 2 - 0.02));
+    }
+  });
+  // poignées en arceau aux deux extrémités
+  if (poignees) {
+    for (const sx of [-1, 1]) {
+      const x = sx * ix;
+      g.add(tube([[x, topY, -iz], [x, h - 0.02, -iz + 0.04], [x, h, 0], [x, h - 0.02, iz - 0.04], [x, topY, iz]], inox ? 0.011 : 0.014, inox ? metal : M('#e3e6e7', 0.5)));
+    }
+  }
   return g;
 };
 

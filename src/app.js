@@ -536,6 +536,9 @@ export class App {
         const fa = fps.get(a.id);
         const fb = fps.get(b.id);
         if (Math.min(fa.y1, fb.y1) - Math.max(fa.y0, fb.y0) <= 0.005) continue;
+        // un objet posé sur un support (plateau de guéridon…) n'est pas en collision avec lui
+        if (isSupport(a) && fb.y0 >= this.supportSurface(a, fa) - 0.01) continue;
+        if (isSupport(b) && fa.y0 >= this.supportSurface(b, fb) - 0.01) continue;
         if (!polyOverlap(fa.poly, fb.poly)) continue;
         const pa = this.parts(a);
         const pb = this.parts(b);
@@ -565,9 +568,18 @@ export class App {
     for (const o of this.project.objects) {
       if (o.id === exclude || !isSupport(o) || !this.isVisible(o)) continue;
       const f = this.footprint(o);
-      if (f && pointInPoly(x, z, f.poly)) top = Math.max(top, f.y1);
+      if (f && pointInPoly(x, z, f.poly)) top = Math.max(top, this.supportSurface(o, f));
     }
     return top;
+  }
+
+  /** Hauteur de la surface de pose (plateau supérieur pour un guéridon, dessus pour le reste) */
+  supportSurface(o, f) {
+    if (o.type === 'device' && o.model === 'gueridon') {
+      const topY = (o.h || 0.8) - (o.poignees === false ? 0.03 : 0.12);
+      return (o.y || 0) + topY + (o.matiere === 'plastique' ? 0.0175 : 0.006);
+    }
+    return f.y1;
   }
 
   updateHelpers() {
