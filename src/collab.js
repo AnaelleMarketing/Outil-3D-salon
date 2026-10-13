@@ -127,11 +127,16 @@ export class Collab {
         skipped.push(meta.name);
         continue;
       }
-      await this.api('asset', { method: 'POST', query: { pid, aid: id }, raw: b, type: b.type || 'application/octet-stream' });
-      done.add(id);
+      try {
+        await this.api('asset', { method: 'POST', query: { pid, aid: id }, raw: b, type: b.type || 'application/octet-stream' });
+        done.add(id);
+      } catch (e) {
+        console.warn('envoi', meta.name, e);
+        skipped.push(meta.name);
+      }
     }
     this.uploaded.set(pid, done);
-    if (skipped.length) this.app.ui.toast(`Fichier(s) trop lourd(s) pour le partage (4 Mo max) : ${skipped.join(', ')}`, 'warn', 6000);
+    if (skipped.length) this.app.ui.toast(`Fichier(s) non partagé(s) (trop lourd ou erreur réseau, réessai à la prochaine modification) : ${skipped.join(', ')}`, 'warn', 6000);
     return metas;
   }
 
@@ -141,12 +146,19 @@ export class Collab {
     return c;
   }
 
-  /** Met le projet en ligne (premier partage) */
+  /** Fiches des fichiers utilisés par le projet (sans les envoyer) */
+  assetMetas(p) {
+    return this.referencedAssets(p)
+      .map((id) => assets.getMeta(id))
+      .filter(Boolean);
+  }
+
+  /** Met le projet en ligne (premier partage) : le projet d'abord, ses fichiers ensuite */
   async share(p) {
-    const metas = await this.uploadAssets(p);
-    const meta = await this.api('share', { method: 'POST', body: { project: this.clean(p), assets: metas } });
+    const meta = await this.api('share', { method: 'POST', body: { project: this.clean(p), assets: this.assetMetas(p) } });
     p.shared = { owner: meta.owner, rev: meta.rev, members: meta.members };
     await this.app.persistShared(p);
+    await this.uploadAssets(p);
     return meta;
   }
 
