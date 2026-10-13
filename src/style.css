@@ -412,3 +412,4 @@ body.hide-left .left, body.hide-right .right { display: none; }
 .rstatus.accepted { color: var(--ok); }
 .rstatus.declined { color: var(--err); }
 .status .sync { color: #c7b6ff; }
+.menu.floating { position: fixed; top: 60px; right: 12px; z-index: 400; }

@@ -277,14 +277,35 @@ export class UI {
       ['Modèle 3D du stand (GLB)', () => this.run('Export GLB', () => X.exportGLB(a))],
       ['Fichier projet (.stand3d.json)', () => this.run('Export projet', () => X.exportProject(a))],
     ];
-    const menu = h(
+    // le menu est attaché au document (et non à la barre, qui peut défiler et le masquerait)
+    this.exportMenuEl?.remove();
+    const menu = (this.exportMenuEl = h(
       'div',
-      { class: 'menu' },
+      { class: 'menu floating' },
       items.map((it) => (it ? h('button', { onClick: () => (menu.classList.remove('open'), it[1]()) }, it[0]) : h('hr'))),
+    ));
+    document.body.append(menu);
+    const btn = h(
+      'button',
+      {
+        class: 'tb primary',
+        onClick: (e) => {
+          e.stopPropagation();
+          const r = btn.getBoundingClientRect();
+          menu.style.top = r.bottom + 6 + 'px';
+          menu.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+          menu.classList.toggle('open');
+        },
+      },
+      icon('download'),
+      h('span', {}, 'Exporter'),
     );
-    const wrap = h('div', { class: 'dd' }, h('button', { class: 'tb primary', onClick: (e) => (e.stopPropagation(), menu.classList.toggle('open')) }, icon('download'), h('span', {}, 'Exporter')), menu);
-    document.addEventListener('click', () => menu.classList.remove('open'));
-    return wrap;
+    if (!this._menuClose) {
+      this._menuClose = true;
+      document.addEventListener('click', () => this.exportMenuEl?.classList.remove('open'));
+      window.addEventListener('resize', () => this.exportMenuEl?.classList.remove('open'));
+    }
+    return h('div', { class: 'dd' }, btn);
   }
 
   async run(label, fn) {
@@ -1527,7 +1548,7 @@ export class UI {
     const a = this.app;
     const name = h('input', { placeholder: 'ex. Arab Health 2027' });
     const salon = h('input', { placeholder: 'Salon' });
-    const tpl = h('select', {}, TEMPLATES.filter((t) => !t.owner || !a.me || t.owner === a.me.user).map((t) => h('option', { value: t.id }, t.label)));
+    const tpl = h('select', {}, TEMPLATES.filter((t) => !t.owners || !a.me || t.owners.includes(a.me.user)).map((t) => h('option', { value: t.id }, t.label)));
     tpl.value = '6x3';
     const W = h('input', { value: a.toUnit(6), inputmode: 'decimal' });
     const D = h('input', { value: a.toUnit(3), inputmode: 'decimal' });

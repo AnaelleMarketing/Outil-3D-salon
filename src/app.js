@@ -43,14 +43,18 @@ export class App {
     this.bindInput();
 
     const params = new URLSearchParams(location.search);
-    // stand WHX Dubai 2027 ajouté une fois dans la session d'Anaelle
-    let seeded = null;
-    if ((!this.me || this.me.user === 'anaelle') && !params.has('visite') && !(await get('seed:tradex'))) {
-      seeded = tradexProject();
-      await set('project:' + seeded.id, seeded);
-      await this.indexProject(seeded, null);
-      await set('seed:tradex', true);
-      await set('lastProject', seeded.id);
+    // stands fournis par défaut à chaque compte (ajoutés une seule fois)
+    const SEEDS = { anaelle: ['tradex'], local: ['tradex'], alicia: ['medica', 'tradex'] };
+    const makers = { medica: medicaProject, tradex: tradexProject };
+    if (!params.has('visite')) {
+      for (const key of SEEDS[this.me?.user || 'local'] || []) {
+        if (await get('seed:' + key)) continue;
+        const seeded = makers[key]();
+        await set('project:' + seeded.id, seeded);
+        await this.indexProject(seeded, null);
+        await set('seed:' + key, true);
+        await set('lastProject', seeded.id);
+      }
     }
     const pid = params.get('visite') || params.get('p') || (await get('lastProject'));
     let p = pid ? await get('project:' + pid) : null;
