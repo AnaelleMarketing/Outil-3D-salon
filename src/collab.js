@@ -63,10 +63,16 @@ export class Collab {
   async refresh() {
     if (!this.enabled) return;
     try {
-      const before = this.incoming.length;
       [this.requests, this.shared] = await Promise.all([this.api('requests'), this.api('shared')]);
       this.app.ui.renderCollabBadge?.();
-      if (this.incoming.length > before) this.app.ui.toast(`Nouvelle demande de collaboration de ${this.name(this.incoming[0].from)}.`);
+      // fenêtre d'alerte pour chaque nouvelle demande reçue (une seule fois par session)
+      this.notified ||= new Set(JSON.parse(sessionStorage.getItem('stand3d:notified') || '[]'));
+      for (const r of this.incoming) {
+        if (this.notified.has(r.id)) continue;
+        this.notified.add(r.id);
+        sessionStorage.setItem('stand3d:notified', JSON.stringify([...this.notified]));
+        this.app.ui.requestPopup?.(r);
+      }
     } catch (e) {
       console.warn('collab', e);
     }

@@ -221,9 +221,7 @@ export class UI {
       (this.budgetChip = h('button', { class: 'budget-chip', title: 'Estimation budgétaire (tarifs indicatifs modifiables)', onClick: () => this.showTab('budget', true) }, '')),
       this.exportMenu(),
       a.collab?.enabled ? (this.collabBtn = h('button', { class: 'tb collab-btn', title: 'Collaborer', onClick: () => this.collabDialog() }, icon('users'), h('span', {}, 'Collaborer'), h('span', { class: 'cbadge' }))) : null,
-      b('share', 'Partager', 'share', () => this.shareDialog()),
-      b('help', '', 'help', () => this.helpDialog(), 'Aide et raccourcis'),
-      !/^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? h('a', { class: 'tb', href: '/__logout', title: 'Se déconnecter' + (a.me ? ' (' + a.me.name + ')' : '') }, a.me ? h('span', { class: 'user-chip' }, a.me.name) : null, 'Déconnexion') : null,
+      this.accountMenu(),
       ].filter(Boolean),
     );
     this.renderTopState();
@@ -306,6 +304,51 @@ export class UI {
       window.addEventListener('resize', () => this.exportMenuEl?.classList.remove('open'));
     }
     return h('div', { class: 'dd' }, btn);
+  }
+
+  /** Menu de compte : nom, partager, aide, mentions légales, déconnexion */
+  accountMenu() {
+    const a = this.app;
+    const online = !/^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+    const name = a.me?.name || (online ? 'Compte' : 'Mode local');
+    this.accountMenuEl?.remove();
+    const item = (ic, label, fn) => h('button', { onClick: () => (menu.classList.remove('open'), fn()) }, icon(ic), label);
+    const menu = (this.accountMenuEl = h(
+      'div',
+      { class: 'menu floating account' },
+      h('div', { class: 'menu-head' }, h('b', {}, name), h('small', {}, a.me ? 'Connectée à Stand 3D' : online ? '' : 'Version locale (sans compte)')),
+      h('hr'),
+      item('share', 'Partager le stand…', () => this.shareDialog()),
+      item('help', 'Aide et raccourcis', () => this.helpDialog()),
+      h('button', { onClick: () => (menu.classList.remove('open'), window.open('/mentions-legales.html', '_blank')) }, h('span', { class: 'ic' }), 'Mentions légales'),
+      online ? h('hr') : null,
+      online ? h('a', { class: 'menu-link danger', href: '/__logout' }, 'Se déconnecter') : null,
+    ));
+    document.body.append(menu);
+    const initial = (a.me?.name || (online ? '?' : 'L')).charAt(0).toUpperCase();
+    const btn = h(
+      'button',
+      {
+        class: 'avatar-btn',
+        title: name + ' – compte, aide et déconnexion',
+        onClick: (e) => {
+          e.stopPropagation();
+          this.exportMenuEl?.classList.remove('open');
+          const r = btn.getBoundingClientRect();
+          menu.style.top = r.bottom + 6 + 'px';
+          menu.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+          menu.classList.toggle('open');
+        },
+      },
+      h('span', { class: 'avatar' }, initial),
+      h('span', { class: 'avatar-name' }, name),
+    );
+    if (!this._accClose) {
+      this._accClose = true;
+      document.addEventListener('click', () => this.accountMenuEl?.classList.remove('open'));
+      window.addEventListener('resize', () => this.accountMenuEl?.classList.remove('open'));
+    }
+    return btn;
   }
 
   async run(label, fn) {
@@ -1931,6 +1974,44 @@ export class UI {
   }
 
   /* ---------------- collaboration ---------------- */
+
+  /** Fenêtre affichée à l'arrivée d'une invitation ou d'une demande de collaboration */
+  requestPopup(r) {
+    this._popQueue ||= [];
+    this._popQueue.push(r);
+    if (this._popOpen) return;
+    const next = async () => {
+      const req = this._popQueue.shift();
+      if (!req) return (this._popOpen = false);
+      this._popOpen = true;
+      const c = this.app.collab;
+      if (!c.incoming.some((x) => x.id === req.id)) return next();
+      const who = c.name(req.from);
+      const body = h(
+        'div',
+        { class: 'invite-pop' },
+        h('div', { class: 'invite-ic', html: ICON.users }),
+        h('p', { class: 'invite-title' }, req.type === 'invite' ? `${who} vous invite à collaborer` : `${who} demande à collaborer avec vous`),
+        h('p', {}, 'Projet : ', h('b', {}, '« ' + req.projectName + ' »')),
+        req.message ? h('p', { class: 'muted' }, '« ' + req.message + ' »') : null,
+        h('p', { class: 'muted' }, req.type === 'invite' ? 'En acceptant, le projet s’ajoute à vos projets et vos modifications seront partagées.' : 'En acceptant, votre projet est partagé en ligne avec ' + who + ' et vos modifications se synchronisent.'),
+      );
+      const { done } = this.modal(req.type === 'invite' ? 'Invitation à collaborer' : 'Demande de collaboration', body, [
+        ['Plus tard', 'later'],
+        ['Refuser', 'no'],
+        ['Accepter', 'yes', 'primary'],
+      ]);
+      const ans = await done;
+      if (ans === 'yes' || ans === 'no') {
+        await this.run(ans === 'yes' ? 'Acceptation' : 'Refus', async () => {
+          const opened = await c.respond(req, ans === 'yes');
+          if (opened) await this.app.loadProject(opened);
+        });
+      } else this.toast('Demande gardée pour plus tard : bouton « Collaborer » (pastille rouge).');
+      next();
+    };
+    next();
+  }
 
   async collabDialog() {
     const a = this.app;
