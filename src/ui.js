@@ -377,7 +377,7 @@ export class UI {
     const m = a.viewer?.mode;
     const hint = {
       plan: 'Plan 2D · glisser un objet pour le déplacer · clic droit/gauche dans le vide pour faire glisser la vue · molette pour zoomer',
-      orbit: 'Vue 3D · glisser un objet pour le déplacer · anneau bleu pour pivoter (pas de 15°) · glisser dans le vide pour tourner autour',
+      orbit: 'Vue 3D · glisser dans le vide (ou Alt + glisser n’importe où) pour tourner autour · trackpad : balayer à deux doigts · boutons Face / Dos en bas pour changer de côté · glisser un objet pour le déplacer',
       visitor: 'Vue visiteur (1,65 m) · ZQSD / WASD ou flèches pour marcher · glisser pour regarder · Maj pour courir',
     }[m];
     const errs = a.alerts.filter((x) => x.level === 'error').length;
@@ -390,6 +390,22 @@ export class UI {
       ),
       m === 'visitor' ? null : h('button', { class: 'hud-btn', onClick: () => (m === 'plan' ? this.setMode('plan') : a.viewer.homeOrbit()) }, 'Recentrer'),
     );
+    // navigation 3D en un clic (utile au trackpad ou quand le stand est rempli d'objets)
+    this.nav ||= h('div', { class: 'nav3d' });
+    if (!this.nav.isConnected) this.viewport.append(this.nav);
+    this.nav.hidden = m !== 'orbit';
+    if (m === 'orbit' && !this.nav.childElementCount) {
+      const b = (label, title, fn, cls = '') => h('button', { class: cls, title, onClick: fn }, label);
+      this.nav.append(
+        b('⟲', 'Tourner autour du stand vers la gauche (45°)', () => a.viewer.turn(-45), 'rot'),
+        b('Face', 'Voir le stand depuis l’allée (face)', () => a.viewer.sideView('face')),
+        b('Dos', 'Voir l’arrière du stand', () => a.viewer.sideView('dos')),
+        b('Gauche', 'Voir le côté gauche', () => a.viewer.sideView('gauche')),
+        b('Droite', 'Voir le côté droit', () => a.viewer.sideView('droite')),
+        b('Dessus', 'Vue plongeante de dessus', () => a.viewer.sideView('dessus')),
+        b('⟳', 'Tourner autour du stand vers la droite (45°)', () => a.viewer.turn(45), 'rot'),
+      );
+    }
     this.status.replaceChildren(h('span', {}, hint), h('span', { class: 'sp' }), h('span', { class: 'fps' }, (a.viewer?.fps || '–') + ' img/s'), h('span', {}, a.project.objects.length + ' objets'), (this.syncEl = h('span', { class: 'sync' })), (this.saveEl = h('span', { class: 'save' }, a.readOnly ? 'Lecture seule' : 'Enregistré')));
     this.setSyncState(this.syncState);
   }

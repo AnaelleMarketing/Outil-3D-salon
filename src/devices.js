@@ -596,12 +596,98 @@ D.dermatoscope = (o) => {
   return g;
 };
 
+/** Écran portrait du Vitalimate MINI (SpO2 / pouls, onde, PNI, température), d'après la notice */
+function vitalsTex() {
+  return canvasTex('lcd-vitals', 320, 480, (g, w, h) => {
+    g.fillStyle = '#05080d';
+    g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(255,255,255,.25)';
+    g.lineWidth = 2;
+    for (const y of [44, 155, 215, 375, 448]) {
+      g.beginPath();
+      g.moveTo(0, y);
+      g.lineTo(w, y);
+      g.stroke();
+    }
+    g.textAlign = 'left';
+    g.font = 'bold 22px Helvetica';
+    g.fillStyle = '#4fd2ff';
+    g.fillText('SpO2  %', 10, 72);
+    g.fillStyle = '#36e07a';
+    g.fillText('PR  bpm', 200, 72);
+    g.font = 'bold 82px Helvetica';
+    g.fillStyle = '#4fd2ff';
+    g.fillText('98', 12, 148);
+    g.fillStyle = '#36e07a';
+    g.fillText('72', 196, 148);
+    g.strokeStyle = '#4fd2ff';
+    g.lineWidth = 3;
+    g.beginPath();
+    for (let x = 6; x < w - 6; x++) {
+      const p = (x % 78) / 78;
+      const y = 198 - Math.max(0, Math.sin(p * Math.PI * 1.6)) * 30 + (p > 0.65 ? (p - 0.65) * 20 : 0);
+      x === 6 ? g.moveTo(x, y) : g.lineTo(x, y);
+    }
+    g.stroke();
+    g.font = 'bold 22px Helvetica';
+    g.fillStyle = '#ffffff';
+    g.fillText('NIBP  mmHg', 10, 244);
+    g.font = 'bold 78px Helvetica';
+    g.fillText('120/80', 8, 330);
+    g.font = 'bold 34px Helvetica';
+    g.textAlign = 'right';
+    g.fillText('(93)', w - 10, 366);
+    g.textAlign = 'left';
+    g.font = 'bold 22px Helvetica';
+    g.fillStyle = '#ffd24a';
+    g.fillText('TEMP', 10, 420);
+    g.font = 'bold 60px Helvetica';
+    g.fillText('36.5', 120, 438);
+    g.font = '16px Helvetica';
+    g.fillStyle = '#c9d2dc';
+    g.fillText('09:47', 10, 470);
+    g.fillRect(w - 46, 458, 34, 14);
+  });
+}
+
+/** Vitalimate MINI (SM50) : moniteur portable vertical posé dans sa station d'accueil (≈ 12 × 8 × 24 cm) */
 D.monitor = (o) => {
   const g = new THREE.Group();
-  g.add(box(0.2, 0.16, 0.1, M(o.color || '#ffffff', 0.35, 0, { clearcoat: 0.5 }), 0, 0.08, 0, 0.012));
-  const scr = screenPlane(0.15, 0.1, 'monitor');
-  scr.position.set(-0.012, 0.09, 0.0505);
-  g.add(scr, box(0.02, 0.1, 0.004, M('#1f3b73', 0.4), 0.083, 0.09, 0.05), box(0.08, 0.012, 0.02, BLACK(), 0, 0.172, 0, 0.004));
+  const body = M(o.color || '#ffffff', 0.35, 0, { clearcoat: 0.5 });
+  const grey = M('#d6dade', 0.45);
+  const dark = M('#2a2e33', 0.45);
+  // station d'accueil : socle bas à l'avant, joues latérales et dos plus hauts (berceau)
+  g.add(box(0.122, 0.042, 0.078, grey, 0, 0.021, 0, 0.008));
+  for (const k of [-1, 1]) g.add(box(0.016, 0.04, 0.066, grey, k * 0.053, 0.06, -0.004, 0.006));
+  g.add(box(0.122, 0.052, 0.016, grey, 0, 0.066, -0.031, 0.006));
+  for (const k of [-1, 1]) for (const z of [-1, 1]) g.add(box(0.012, 0.004, 0.012, dark, k * 0.048, 0.002, z * 0.028));
+  // unité portable, légèrement inclinée vers l'arrière
+  const u = new THREE.Group();
+  const H = 0.215;
+  u.add(box(0.089, H, 0.026, body, 0, H / 2, 0, 0.012));
+  // poignée arrière (renflement bas du dos)
+  u.add(box(0.07, 0.07, 0.012, body, 0, 0.06, -0.017, 0.006));
+  // face avant noire, écran 3,5" portrait
+  u.add(box(0.076, 0.115, 0.002, dark, 0, 0.148, 0.013, 0.004));
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 0.075), screenMat(vitalsTex()));
+  scr.userData.emissive = true;
+  scr.position.set(0, 0.152, 0.0142);
+  u.add(scr);
+  // voyant d'alarme en haut
+  const led = box(0.05, 0.006, 0.004, M('#4fd2ff', 0.3, 0, { emissive: '#2a9fd0', emissiveIntensity: 0.6 }), 0, H - 0.008, 0.012, 0.002);
+  u.add(led);
+  // 3 touches sous l'écran (marche, alarme, PNI)
+  for (const k of [-1, 0, 1]) u.add(box(0.018, 0.01, 0.004, M('#f2f3f5', 0.4), k * 0.024, 0.081, 0.0135, 0.003));
+  // pavé de navigation : OK central, menu / retour à gauche, haut / bas à droite
+  const ok = cyl(0.009, 0.009, 0.004, dark, 0, 0.05, 0.0145, 24);
+  ok.rotation.x = Math.PI / 2;
+  u.add(ok);
+  for (const [x, y] of [[-0.022, 0.058], [-0.022, 0.042], [0.022, 0.058], [0.022, 0.042]]) u.add(box(0.016, 0.009, 0.004, M('#e7e9ec', 0.4), x, y, 0.0135, 0.003));
+  // prises en haut : température, SpO2, PNI
+  for (const x of [-0.02, 0, 0.02]) u.add(cyl(0.0055, 0.0055, 0.004, dark, x, H + 0.001, -0.002, 16));
+  u.position.set(0, 0.03, -0.006);
+  u.rotation.x = -0.13;
+  g.add(u);
   return g;
 };
 

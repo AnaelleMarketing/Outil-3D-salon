@@ -457,3 +457,12 @@ body.hide-left .left, body.hide-right .right { display: none; }
 }
 .coach-toggle { margin-right: 6px; flex-shrink: 0; }
 .coach-toggle.on { background: var(--accent2); color: var(--accent); border-color: #9cc3d6; }
+
+/* navigation 3D en un clic */
+.nav3d { position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); z-index: 3; display: flex; gap: 2px; padding: 3px; background: rgba(255,255,255,.94); border-radius: 18px; box-shadow: 0 3px 12px rgba(0,0,0,.22); max-width: calc(100% - 24px); overflow-x: auto; }
+.nav3d[hidden] { display: none; }
+.nav3d button { border: 0; background: transparent; border-radius: 14px; padding: 6px 11px; font-size: 12px; font-weight: 600; color: var(--ink); white-space: nowrap; cursor: pointer; }
+.nav3d button:hover { background: var(--accent); color: #fff; }
+.nav3d button.rot { font-size: 16px; padding: 3px 10px; color: var(--accent); }
+.nav3d button.rot:hover { color: #fff; }
+@media (max-width: 700px) { .nav3d button { padding: 6px 8px; font-size: 11px; } }

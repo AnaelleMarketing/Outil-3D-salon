@@ -154,6 +154,7 @@ export class App {
 
   /** Enregistre une étape dans l'historique (annuler/rétablir illimité) */
   commit(label = '') {
+    this.seatPeople();
     const s = JSON.stringify(this.project);
     if (s === this.history[this.hIndex]) {
       this.sync();
@@ -563,6 +564,102 @@ export class App {
   }
 
   /** Hauteur du dessus du support (socle, comptoir…) sous un point */
+  /* ----- personnages assis : s'adaptent au siège sur lequel ils sont posés ----- */
+
+  /** Places assises d'un siège, en coordonnées locales : hauteur d'assise, appui des pieds, positions */
+  seatsOf(q) {
+    const w = q.w || 0.45;
+    const d = q.d || 0.45;
+    if (q.type === 'chair') return { top: 0.48, foot: 0, w, d, pts: [[0, d * 0.05]] };
+    if (q.type === 'stool') return { top: q.h || 0.76, foot: (q.h || 0.76) > 0.6 ? ((q.h || 0.76) - 0.05) * 0.38 : 0, w, d, pts: [[0, 0]] };
+    if (q.type === 'barChair') {
+      const sh = q.seatH || 0.76;
+      return { top: sh + (q.style === 'coque' ? 0.02 : 0.025), foot: sh * 0.38 + 0.008, w, d, pts: [[0, q.style === 'coque' ? 0 : d * 0.05]] };
+    }
+    if (q.type === 'sofa') {
+      const inner = w - 0.3;
+      const n = Math.max(1, Math.round(inner / 0.6));
+      return { top: 0.43, foot: 0, w, d, pts: Array.from({ length: n }, (_, i) => [-inner / 2 + (inner / n) * (i + 0.5), 0.06]) };
+    }
+    return null;
+  }
+
+  /** Siège le plus proche d'un point (x, z) : position, orientation et hauteurs dans le stand */
+  findSeat(x, z, exclude) {
+    let best = null;
+    for (const q of this.project.objects) {
+      if (q.id === exclude || !this.isVisible(q)) continue;
+      const S = this.seatsOf(q);
+      if (!S) continue;
+      const r = rad(q.rot || 0);
+      const c = Math.cos(r);
+      const sn = Math.sin(r);
+      const dx = x - q.x;
+      const dz = z - q.z;
+      const lx = dx * c - dz * sn;
+      const lz = dx * sn + dz * c;
+      if (Math.abs(lx) > S.w / 2 + 0.15 || Math.abs(lz) > S.d / 2 + 0.15) continue;
+      for (const [px, pz] of S.pts) {
+        const dist = Math.hypot(lx - px, lz - pz);
+        if (best && dist >= best.dist) continue;
+        best = { dist, q, x: q.x + px * c + pz * sn, z: q.z - px * sn + pz * c, rot: q.rot || 0, seatH: (q.y || 0) + S.top, footY: (q.y || 0) + S.foot };
+      }
+    }
+    return best;
+  }
+
+  isSeated(o) {
+    return o.type === 'person' && (o.pose === 'assis' || o.pose === 'assisHaut');
+  }
+
+  /** Assied le personnage sur le siège trouvé (ou le remet au sol s'il n'y en a pas) */
+  seatPerson(o, s = this.findSeat(o.x, o.z, o.id)) {
+    if (s) {
+      o.x = Math.round(s.x * 1000) / 1000;
+      o.z = Math.round(s.z * 1000) / 1000;
+      o.seatH = Math.round(s.seatH * 1000) / 1000;
+      o.footY = Math.round(s.footY * 1000) / 1000;
+      o.pose = s.seatH > 0.62 ? 'assisHaut' : 'assis';
+      o.seatOn = s.q.id;
+    } else {
+      delete o.seatH;
+      delete o.footY;
+      delete o.seatOn;
+    }
+    o.y = 0;
+    return s;
+  }
+
+  /** Après chaque modification : les personnes assises suivent leur siège (déplacé, pivoté, réglé) */
+  seatPeople() {
+    for (const o of this.project.objects) {
+      if (!this.isSeated(o)) continue;
+      const q = o.seatOn && this.obj(o.seatOn);
+      if (q && this.seatsOf(q)) {
+        // garde la place occupée (canapé) mais suit le siège
+        const S = this.seatsOf(q);
+        const r = rad(q.rot || 0);
+        const c = Math.cos(r);
+        const sn = Math.sin(r);
+        const dx = o.x - q.x;
+        const dz = o.z - q.z;
+        const lx = dx * c - dz * sn;
+        const lz = dx * sn + dz * c;
+        let pt = S.pts[0];
+        for (const p of S.pts) if (Math.hypot(lx - p[0], lz - p[1]) < Math.hypot(lx - pt[0], lz - pt[1])) pt = p;
+        if (Math.hypot(lx - pt[0], lz - pt[1]) < 0.6) {
+          const before = o.rot;
+          this.seatPerson(o, { q, x: q.x + pt[0] * c + pt[1] * sn, z: q.z - pt[0] * sn + pt[1] * c, rot: q.rot || 0, seatH: (q.y || 0) + S.top, footY: (q.y || 0) + S.foot });
+          if (this._seatRot?.[q.id] != null && this._seatRot[q.id] !== (q.rot || 0)) o.rot = norm180((o.rot || 0) + (q.rot || 0) - this._seatRot[q.id]);
+          else o.rot = before;
+          continue;
+        }
+      }
+      this.seatPerson(o);
+    }
+    this._seatRot = Object.fromEntries(this.project.objects.filter((q) => this.seatsOf(q)).map((q) => [q.id, q.rot || 0]));
+  }
+
   supportTop(x, z, exclude) {
     let top = 0;
     for (const o of this.project.objects) {
@@ -748,6 +845,32 @@ export class App {
     const smart = this.stand.smart !== false && !this.shift;
     this.guides = [];
     let r = null;
+    const seat = this.isSeated(o) && this.findSeat(cx, cz, o.id);
+    if (seat) {
+      // personnage assis : il s'installe sur le siège, face à l'avant du siège
+      const changed = o.seatH !== Math.round(seat.seatH * 1000) / 1000 || o.footY !== Math.round(seat.footY * 1000) / 1000 || o.seatOn !== seat.q.id;
+      this.seatPerson(o, seat);
+      if (o.seatOn !== this._lastSeat) o.rot = seat.rot;
+      this._lastSeat = o.seatOn;
+      if (changed) this.sync();
+      else {
+        const g = this.cache.get(o.id)?.group;
+        g?.position.set(o.x, 0, o.z);
+        g?.rotation.set(0, rad(o.rot || 0), 0);
+        g?.updateMatrixWorld(true);
+      }
+      this.gaps = [];
+      this.computeAlerts();
+      this.updateHelpers();
+      this.ui.livePos?.(o);
+      this.ui.liveRot?.(o.rot);
+      return;
+    }
+    this._lastSeat = null;
+    if (this.isSeated(o) && o.seatOn) {
+      this.seatPerson(o, null);
+      this.sync();
+    }
     const overSupport = isStackable(o) && this.supportTop(cx, cz, o.id) > 0;
     if (smart && !overSupport) r = this.wallSnap(o, cx, cz);
     if (r) {
@@ -1224,9 +1347,18 @@ export class App {
         if (v.mode === 'visitor') {
           e.preventDefault();
           v.visitorStep(-Math.sign(e.deltaY) * 0.4, 0);
+        } else if (v.mode === 'orbit' && !e.ctrlKey && Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+          // trackpad : balayage horizontal à deux doigts = tourner autour du stand
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          const t = v.orbit.target;
+          const off = v.persp.position.clone().sub(t).applyAxisAngle(new THREE.Vector3(0, 1, 0), e.deltaX * 0.006);
+          v.persp.position.copy(t).add(off);
+          v.orbit.update();
+          v.invalidate();
         }
       },
-      { passive: false },
+      { passive: false, capture: true },
     );
     v.tc.addEventListener('objectChange', () => {
       const o = this.sel;
@@ -1271,6 +1403,7 @@ export class App {
     if (e.button !== 0) return;
     if (v.tc.axis) return; // poignée de rotation
     if (this.tool || this.readOnly) return;
+    if (e.altKey) return; // Alt + glisser : toujours tourner la vue, même sur un objet
     const hh = this.ray(e).intersectObjects(this.handleObjects(), true)[0];
     if (hh) {
       let o = hh.object;

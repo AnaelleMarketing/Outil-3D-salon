@@ -217,6 +217,57 @@ export class Viewer {
     this.invalidate();
   }
 
+  /** Déplacement animé de la caméra 3D (position et cible) */
+  flyTo(pos, target, ms = 450) {
+    const p0 = this.persp.position.clone();
+    const t0 = this.orbit.target.clone();
+    const start = performance.now();
+    cancelAnimationFrame(this._fly);
+    const step = (now) => {
+      const k = Math.min(1, (now - start) / ms);
+      const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      this.orbit.target.lerpVectors(t0, target, e);
+      // interpolation autour de la cible (évite de traverser le stand)
+      const a = new THREE.Spherical().setFromVector3(p0.clone().sub(t0));
+      const b = new THREE.Spherical().setFromVector3(pos.clone().sub(target));
+      let dt = b.theta - a.theta;
+      while (dt > Math.PI) dt -= Math.PI * 2;
+      while (dt < -Math.PI) dt += Math.PI * 2;
+      const sph = new THREE.Spherical(a.radius + (b.radius - a.radius) * e, a.phi + (b.phi - a.phi) * e, a.theta + dt * e);
+      this.persp.position.setFromSpherical(sph).add(this.orbit.target);
+      this.orbit.update();
+      this.invalidate();
+      if (k < 1) this._fly = requestAnimationFrame(step);
+    };
+    this._fly = requestAnimationFrame(step);
+  }
+
+  /** Fait tourner la vue autour du stand (degrés, sens inverse des aiguilles d'une montre si > 0) */
+  turn(degrees) {
+    const t = this.orbit.target.clone();
+    const off = this.persp.position.clone().sub(t);
+    off.applyAxisAngle(new THREE.Vector3(0, 1, 0), (degrees * Math.PI) / 180);
+    this.flyTo(t.clone().add(off), t);
+  }
+
+  /** Vues rapides : face (allée), dos, côtés, dessus */
+  sideView(side) {
+    const W = this.W || 8;
+    const D = this.D || 3;
+    const L = Math.max(W, D);
+    const t = new THREE.Vector3(W / 2, 1.2, D / 2);
+    const dist = L * 1.15 + 2;
+    const hgt = 2.6 + L * 0.12;
+    const pos = {
+      face: new THREE.Vector3(W / 2, hgt, D / 2 + dist),
+      dos: new THREE.Vector3(W / 2, hgt, D / 2 - dist),
+      gauche: new THREE.Vector3(W / 2 - dist, hgt, D / 2),
+      droite: new THREE.Vector3(W / 2 + dist, hgt, D / 2),
+      dessus: new THREE.Vector3(W / 2, L * 1.6 + 3, D / 2 + 0.6),
+    }[side];
+    if (pos) this.flyTo(pos, t);
+  }
+
   applyVisitor() {
     const v = this.visitor;
     this.persp.position.copy(v.pos);

@@ -162,11 +162,22 @@ export function buildPerson(o) {
     lA.mid.rotation.x = -0.35;
     head.rotation.y = 0.15;
   } else if (o.pose === 'assis' || o.pose === 'assisHaut') {
-    const seat = o.pose === 'assis' ? 0.46 : 0.76;
+    // posture calculée d'après la hauteur d'assise réelle (chaise, tabouret, chaise haute, canapé)
+    // et l'appui des pieds (sol ou repose-pieds)
+    const k0 = (o.h || 1.75) / 1.75;
+    const s = (o.seatH ?? (o.pose === 'assis' ? 0.47 : 0.78)) / k0;
+    const f = (o.footY ?? (o.pose === 'assis' ? 0 : 0.29)) / k0;
+    const reach = legL2 + 0.01; // genou -> semelle
+    const D = s + 0.07 - f; // hauteur du genou (cuisse horizontale) au-dessus de l'appui
+    let thigh = 0;
+    let shin = 0; // > 0 : pieds vers l'avant, < 0 : pieds repliés vers l'arrière
+    if (D > reach) thigh = Math.min(0.7, Math.asin(Math.min(1, (D - reach) / legL1)));
+    else shin = (f > 0.05 ? -1 : 1) * Math.acos(Math.max(0, D / reach));
     for (const L of legs) {
-      L.g.rotation.x = -Math.PI / 2;
-      L.mid.rotation.x = Math.PI / 2 + (o.pose === 'assisHaut' ? 0.45 : 0);
+      L.g.rotation.x = -Math.PI / 2 + thigh;
+      L.mid.rotation.x = Math.PI / 2 - thigh - shin;
     }
+    const seat = s * k0;
     lA.g.rotation.x = -0.6;
     rA.g.rotation.x = -0.6;
     lA.mid.rotation.x = -0.8;
@@ -178,7 +189,7 @@ export function buildPerson(o) {
         m.position.z = 0.08;
       }
     });
-    lift = seat - (hipY - 0.07);
+    lift = seat / k0 - (hipY - 0.07);
     fig.position.z = -0.12;
   } else {
     lA.mid.rotation.x = -0.12;
