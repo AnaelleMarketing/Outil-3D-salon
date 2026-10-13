@@ -792,9 +792,9 @@ B.kakemono = (o, ud) => {
   if (m === 'enrouleur') {
     const base = new THREE.Mesh(new RoundedBoxGeometry(w + 0.04, 0.085, 0.2, 3, 0.03), alu);
     base.position.set(0, 0.0425, 0);
-    g.add(base, cyl(0.01, 0.01, h, alu, 0, y0 + h / 2, -0.04, 10));
+    g.add(base, cyl(0.01, 0.01, h, 0, y0 + h / 2, -0.04, alu, 10));
     for (const k of [-1, 1]) g.add(boxAt(0.04, 0.012, 0.22, k * (w / 2 - 0.05), 0.006, 0.02, alu));
-    const bar = cyl(0.008, 0.008, w + 0.01, alu, 0, y0 + h + 0.004, 0, 10);
+    const bar = cyl(0.008, 0.008, w + 0.01, 0, y0 + h + 0.004, 0, alu, 10);
     bar.rotation.z = Math.PI / 2;
     g.add(bar);
   } else if (m === 'x') {
@@ -810,18 +810,18 @@ B.kakemono = (o, ud) => {
       t.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
       g.add(t);
     }
-    g.add(cyl(0.02, 0.02, 0.04, getMaterial('noir_mat'), 0, y0 + h * 0.45, back, 12));
-    const foot = cyl(0.01, 0.01, 0.5, getMaterial('noir_mat'), 0, y0 + h * 0.22, back - 0.22, 8);
+    g.add(cyl(0.02, 0.02, 0.04, 0, y0 + h * 0.45, back, getMaterial('noir_mat'), 12));
+    const foot = cyl(0.01, 0.01, 0.5, 0, y0 + h * 0.22, back - 0.22, getMaterial('noir_mat'), 8);
     foot.rotation.x = -0.9;
     g.add(foot, boxAt(0.4, 0.015, 0.05, 0, 0.0075, 0.02, getMaterial('noir_mat')));
   } else {
     // suspendu : barres alu haut/bas et câbles vers le plafond
     for (const yy of [0, h]) {
-      const bar = cyl(0.012, 0.012, w + 0.02, alu, 0, yy, 0, 12);
+      const bar = cyl(0.012, 0.012, w + 0.02, 0, yy, 0, alu, 12);
       bar.rotation.z = Math.PI / 2;
       g.add(bar);
     }
-    for (const k of [-1, 1]) g.add(cyl(0.0015, 0.0015, 0.6, getMaterial('chrome'), k * (w / 2 - 0.05), h + 0.3, 0, 4));
+    for (const k of [-1, 1]) g.add(cyl(0.0015, 0.0015, 0.6, k * (w / 2 - 0.05), h + 0.3, 0, getMaterial('chrome'), 4));
   }
   return g;
 };
