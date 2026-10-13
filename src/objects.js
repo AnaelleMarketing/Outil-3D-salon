@@ -78,8 +78,8 @@ export const CATALOG = [
 ];
 
 /** Description des types : champs éditables et comportements */
-/** Totem Tribeca : 4 modules (1 = bas … 4 = haut) × 3 faces imprimables */
-const TRIBECA_FACES = { a: ['face avant', 'côté gauche', 'côté droit'], b: ['face avant', 'face arrière', 'côté'] };
+/** Totem Tribeca : 4 modules triangulaires (1 = bas … 4 = haut) × 3 faces imprimables */
+const TRIBECA_FACES = { a: ['face avant', 'face arrière gauche', 'face arrière droite'], b: ['face avant gauche', 'face avant droite', 'face arrière'] };
 const TRIBECA_KEYS = [4, 3, 2, 1].flatMap((m) => ['a', 'b', 'c'].map((f) => `imageT${m}${f}`));
 const tribecaLabel = (k) => {
   const m = +k[6];
@@ -783,25 +783,30 @@ B.barChair = (o) => {
   return g;
 };
 
-/** Totem carton Tribeca : 4 modules en U (50 × 50 × 43,5 cm) empilés en quinconce, 1,85 m */
+/** Totem carton Tribeca : 4 modules triangulaires (prismes équilatéraux 50 cm, hauteur 50 cm),
+ *  tournés d'un demi-tour un module sur deux, 1,85 m de haut, 50 × 58 cm au sol */
 B.tribeca = (o, ud) => {
   const g = new THREE.Group();
   const board = getMaterial('blanc_mat');
   const blank = new THREE.MeshStandardMaterial({ color: '#f4f4f2', roughness: 0.92 });
   const t = 0.0023;
-  const W = 0.5;
-  const DP = 0.435;
+  const S = 0.5;
   const H = 0.5;
-  // panneau carton + visuel (ou face blanche cliquable) côté extérieur
-  const panel = (key, w, cx, cy, cz, rotY) => {
-    const b = boxAt(w, H, t, 0, 0, 0, board);
+  const ht = (S * Math.sqrt(3)) / 2; // 43,3 cm
+  // panneau entre deux sommets (x, z), visuel sur la face extérieure
+  const panel = (key, p1, p2, cy) => {
+    const cx = (p1[0] + p2[0]) / 2;
+    const cz = (p1[1] + p2[1]) / 2;
+    // normale extérieure : depuis le centre du triangle (origine) vers le milieu du côté
+    const rotY = Math.atan2(cx, cz);
+    const b = boxAt(S, H, t, 0, 0, 0, board);
     b.position.set(cx, cy, cz);
     b.rotation.y = rotY;
     g.add(b);
-    const n = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotY);
+    const n = new THREE.Vector3(Math.sin(rotY), 0, Math.cos(rotY));
     const pos = new THREE.Vector3(cx, cy, cz).addScaledVector(n, t / 2 + 0.0008);
-    if (!addGraphic(g, o, key, w, H, 0, pos, rotY, ud)) {
-      const ph = new THREE.Mesh(new THREE.PlaneGeometry(w, H), blank);
+    if (!addGraphic(g, o, key, S - 0.004, H, 0, pos, rotY, ud)) {
+      const ph = new THREE.Mesh(new THREE.PlaneGeometry(S - 0.004, H), blank);
       ph.position.copy(pos);
       ph.rotation.y = rotY;
       ph.userData.imageKey = key;
@@ -812,20 +817,21 @@ B.tribeca = (o, ud) => {
     const cy = (m - 1) * 0.45 + H / 2;
     const k = (f) => `imageT${m}${f}`;
     if (m % 2) {
-      // module ouvert à l'arrière : face avant 50 cm + deux côtés 43,5 cm
-      const z0 = 0.58 / 2 - DP / 2;
-      panel(k('a'), W, 0, cy, z0 + DP / 2, 0);
-      panel(k('b'), DP, -W / 2, cy, z0, -Math.PI / 2);
-      panel(k('c'), DP, W / 2, cy, z0, Math.PI / 2);
+      // face plate à l'avant, pointe vers l'arrière
+      const L = [-S / 2, ht / 3];
+      const R = [S / 2, ht / 3];
+      const P = [0, (-2 * ht) / 3];
+      panel(k('a'), L, R, cy);
+      panel(k('b'), P, L, cy);
+      panel(k('c'), R, P, cy);
     } else {
-      // module tourné d'un quart de tour, décalé vers l'arrière, ouvert sur un côté (alterné)
-      const side = m === 2 ? -1 : 1;
-      const w2 = DP;
-      const z0 = -0.58 / 2 + W / 2;
-      const x0 = -side * (W - w2) / 2;
-      panel(k('a'), w2, x0, cy, z0 + W / 2, 0);
-      panel(k('b'), w2, x0, cy, z0 - W / 2, Math.PI);
-      panel(k('c'), W, x0 + side * w2 / 2, cy, z0, side * Math.PI / 2);
+      // pointe vers l'avant, face plate à l'arrière
+      const L = [-S / 2, -ht / 3];
+      const R = [S / 2, -ht / 3];
+      const P = [0, (2 * ht) / 3];
+      panel(k('a'), L, P, cy);
+      panel(k('b'), P, R, cy);
+      panel(k('c'), R, L, cy);
     }
   }
   return g;
