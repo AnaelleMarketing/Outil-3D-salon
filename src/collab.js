@@ -1,6 +1,7 @@
 // Collaboration (version en ligne) : comptes, demandes d'invitation / de participation, projets partagés synchronisés.
 import * as assets from './assets.js';
 import { set } from './store.js';
+import { ALL_IMAGE_KEYS } from './objects.js';
 
 const API = '/api/collab';
 const MAX_UPLOAD = 4.2e6;
@@ -98,7 +99,7 @@ export class Collab {
 
   referencedAssets(p) {
     const ids = new Set();
-    for (const o of p.objects) for (const k of ['image', 'imageBack', 'imageSide', 'model']) if (o[k]) ids.add(o[k]);
+    for (const o of p.objects) for (const k of [...ALL_IMAGE_KEYS, 'model']) if (o[k]) ids.add(o[k]);
     if (p.stand.plan?.asset) ids.add(p.stand.plan.asset);
     if (p.stand.floor?.asset) ids.add(p.stand.floor.asset);
     return [...ids].filter((id) => !id.startsWith('builtin:'));

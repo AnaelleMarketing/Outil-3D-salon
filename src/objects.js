@@ -46,6 +46,7 @@ export const CATALOG = [
   { type: 'vitrineBasse', label: 'Vitrine basse fermant à clé (dessus verre)', cat: 'PLV & écrans', kw: 'showcase vitrine comptoir verre lockable', d: { w: 0.8, d: 0.5, h: 1.05, finish: 'blanc_laque', gMargin: 0.08 } },
   { type: 'display', label: 'Présentoir à étagères', cat: 'PLV & écrans', kw: 'vitrine étagère', d: { w: 0.8, d: 0.35, h: 1.8, finish: 'blanc_laque', shelves: 3 } },
   { type: 'brochure', label: 'Porte-catalogues', cat: 'PLV & écrans', kw: 'brochure flyers documentation', d: { w: 0.3, d: 0.35, h: 1.5, finish: 'plexi_depoli' } },
+  { type: 'tribeca', label: 'Totem carton Tribeca (4 modules, 50 × 185 cm)', cat: 'PLV & écrans', kw: 'totem carton tribeca pixartprinting colonne cubes présentoir visuel', d: { w: 0.5, d: 0.58, h: 1.85, imageFit: 'cover' } },
   { type: 'kakemono', label: 'Kakémono enrouleur (roll-up)', cat: 'PLV & écrans', kw: 'kakemono rollup roll-up enrouleur visuel bannière', d: { w: 0.85, h: 2, mount: 'enrouleur', imageFit: 'cover' } },
   { type: 'kakemono', label: 'Kakémono sur pied en X', cat: 'PLV & écrans', kw: 'kakemono x-banner pied visuel', d: { w: 0.8, h: 1.8, mount: 'x', imageFit: 'cover' } },
   { type: 'kakemono', label: 'Kakémono sur pied', cat: 'Structure', kw: 'kakemono rollup visuel', d: { w: 1, h: 2, mount: 'enrouleur', imageFit: 'cover' } },
@@ -77,6 +78,15 @@ export const CATALOG = [
 ];
 
 /** Description des types : champs éditables et comportements */
+/** Totem Tribeca : 4 modules (1 = bas … 4 = haut) × 3 faces imprimables */
+const TRIBECA_FACES = { a: ['face avant', 'côté gauche', 'côté droit'], b: ['face avant', 'face arrière', 'côté'] };
+const TRIBECA_KEYS = [4, 3, 2, 1].flatMap((m) => ['a', 'b', 'c'].map((f) => `imageT${m}${f}`));
+const tribecaLabel = (k) => {
+  const m = +k[6];
+  const f = 'abc'.indexOf(k[7]);
+  return `Module ${m}${m === 4 ? ' (haut)' : m === 1 ? ' (bas)' : ''} – ${TRIBECA_FACES[m % 2 ? 'a' : 'b'][f]}`;
+};
+
 export const TYPES = {
   wall: { label: 'Cloison', fields: ['w', 'h', 'd', 'radius', 'finish', 'color'], images: ['image', 'imageBack'], graphic: true },
   curvedWall: { label: 'Cloison courbe', fields: ['radius', 'angle', 'h', 'd', 'finish', 'color'], images: ['image'] },
@@ -104,6 +114,7 @@ export const TYPES = {
   vitrineBasse: { label: 'Vitrine basse', fields: ['w', 'd', 'h', 'finish', 'color'], images: ['image'], support: true },
   display: { label: 'Présentoir', fields: ['w', 'd', 'h', 'y', 'shelves', 'finish', 'color'], images: ['image'], support: true },
   brochure: { label: 'Porte-catalogues', fields: ['w', 'd', 'h', 'finish'], images: ['image'] },
+  tribeca: { label: 'Totem Tribeca', fields: [], images: TRIBECA_KEYS },
   kakemono: { label: 'Kakémono', fields: ['kformat', 'w', 'h', 'mount', 'y'], images: ['image', 'imageBack'] },
   rollup: { label: 'Roll-up', fields: ['w', 'h', 'finish'], images: ['image'] },
   tv: { label: 'Écran', fields: ['inches', 'mount', 'screenY', 'y', 'finish'], images: ['image'] },
@@ -166,7 +177,9 @@ export const FIELD = {
 // le champ "angle" d'un spot = ouverture du faisceau
 export const SPOT_ANGLE = { label: 'Ouverture faisceau (°)', kind: 'range', min: 10, max: 90, step: 5 };
 
-export const IMAGE_LABELS = { image: 'Visuel face avant', imageBack: 'Visuel face arrière', imageSide: 'Photo de côté' };
+export const IMAGE_LABELS = { image: 'Visuel face avant', imageBack: 'Visuel face arrière', imageSide: 'Photo de côté', ...Object.fromEntries(TRIBECA_KEYS.map((k) => [k, tribecaLabel(k)])) };
+/** Toutes les clés de visuels possibles (pour les fichiers liés à un projet) */
+export const ALL_IMAGE_KEYS = ['image', 'imageBack', 'imageSide', ...TRIBECA_KEYS];
 
 /* ---------- utilitaires géométriques ---------- */
 
@@ -767,6 +780,54 @@ B.barChair = (o) => {
   const fr = sh * 0.38;
   g.add(boxAt(w - 0.06, 0.016, 0.016, 0, fr, d / 2 - 0.05, lm), boxAt(w - 0.06, 0.016, 0.016, 0, fr, -d / 2 + 0.05, lm));
   g.add(boxAt(0.016, 0.016, d - 0.1, -(w / 2 - 0.04), fr, 0, lm), boxAt(0.016, 0.016, d - 0.1, w / 2 - 0.04, fr, 0, lm));
+  return g;
+};
+
+/** Totem carton Tribeca : 4 modules en U (50 × 50 × 43,5 cm) empilés en quinconce, 1,85 m */
+B.tribeca = (o, ud) => {
+  const g = new THREE.Group();
+  const board = getMaterial('blanc_mat');
+  const blank = new THREE.MeshStandardMaterial({ color: '#f4f4f2', roughness: 0.92 });
+  const t = 0.0023;
+  const W = 0.5;
+  const DP = 0.435;
+  const H = 0.5;
+  // panneau carton + visuel (ou face blanche cliquable) côté extérieur
+  const panel = (key, w, cx, cy, cz, rotY) => {
+    const b = boxAt(w, H, t, 0, 0, 0, board);
+    b.position.set(cx, cy, cz);
+    b.rotation.y = rotY;
+    g.add(b);
+    const n = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), rotY);
+    const pos = new THREE.Vector3(cx, cy, cz).addScaledVector(n, t / 2 + 0.0008);
+    if (!addGraphic(g, o, key, w, H, 0, pos, rotY, ud)) {
+      const ph = new THREE.Mesh(new THREE.PlaneGeometry(w, H), blank);
+      ph.position.copy(pos);
+      ph.rotation.y = rotY;
+      ph.userData.imageKey = key;
+      g.add(ph);
+    }
+  };
+  for (let m = 1; m <= 4; m++) {
+    const cy = (m - 1) * 0.45 + H / 2;
+    const k = (f) => `imageT${m}${f}`;
+    if (m % 2) {
+      // module ouvert à l'arrière : face avant 50 cm + deux côtés 43,5 cm
+      const z0 = 0.58 / 2 - DP / 2;
+      panel(k('a'), W, 0, cy, z0 + DP / 2, 0);
+      panel(k('b'), DP, -W / 2, cy, z0, -Math.PI / 2);
+      panel(k('c'), DP, W / 2, cy, z0, Math.PI / 2);
+    } else {
+      // module tourné d'un quart de tour, décalé vers l'arrière, ouvert sur un côté (alterné)
+      const side = m === 2 ? -1 : 1;
+      const w2 = DP;
+      const z0 = -0.58 / 2 + W / 2;
+      const x0 = -side * (W - w2) / 2;
+      panel(k('a'), w2, x0, cy, z0 + W / 2, 0);
+      panel(k('b'), w2, x0, cy, z0 - W / 2, Math.PI);
+      panel(k('c'), W, x0 + side * w2 / 2, cy, z0, side * Math.PI / 2);
+    }
+  }
   return g;
 };
 

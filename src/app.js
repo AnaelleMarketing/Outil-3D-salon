@@ -4,7 +4,7 @@ import { get, set, del } from './store.js';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { Viewer } from './viewer.js';
 import * as assets from './assets.js';
-import { TYPES, buildObject, fromCatalog, isSupport, isStackable, noCollide } from './objects.js';
+import { TYPES, buildObject, fromCatalog, isSupport, isStackable, noCollide, ALL_IMAGE_KEYS } from './objects.js';
 import { floorMaterial } from './materials.js';
 import { medicaProject, tradexProject, registerBuiltins, emptyProject } from './templates.js';
 import { uid, rad, deg, h } from './util.js';
@@ -133,7 +133,7 @@ export class App {
   async preloadAssets() {
     const ids = new Set();
     for (const o of this.project.objects) {
-      for (const k of ['image', 'imageBack', 'imageSide', 'model']) if (o[k]) ids.add(o[k]);
+      for (const k of [...ALL_IMAGE_KEYS, 'model']) if (o[k]) ids.add(o[k]);
     }
     const st = this.project.stand;
     if (st.plan?.asset) ids.add(st.plan.asset);
@@ -317,7 +317,7 @@ export class App {
       g.position.set(o.x, o.y || 0, o.z);
       g.rotation.set(0, rad(o.rot || 0), 0);
       g.visible = !p.hiddenZones.includes(o.zone || '') && !(this.viewer.mode === 'plan' && TYPES[o.type]?.hanging);
-      if (g.visible) for (const k of ['image', 'imageBack', 'imageSide']) if (o[k] && assets.getMeta(o[k])?.kind === 'video') videos++;
+      if (g.visible) for (const k of ALL_IMAGE_KEYS) if (o[k] && assets.getMeta(o[k])?.kind === 'video') videos++;
     }
     for (const [id, e] of this.cache) {
       if (!seen.has(id)) {
@@ -1656,7 +1656,8 @@ export class App {
       return;
     }
     let key = keys[0];
-    if (hit?.face && keys.includes('imageBack')) {
+    if (hit?.object?.userData.imageKey && keys.includes(hit.object.userData.imageKey)) key = hit.object.userData.imageKey;
+    else if (hit?.face && keys.includes('imageBack')) {
       const n = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
       const front = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), rad(o.rot || 0));
       if (hit.object.userData.imageKey) key = hit.object.userData.imageKey;

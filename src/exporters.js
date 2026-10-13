@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { jsPDF } from 'jspdf';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import * as assets from './assets.js';
-import { TYPES, isSupport } from './objects.js';
+import { TYPES, isSupport, ALL_IMAGE_KEYS, IMAGE_LABELS } from './objects.js';
 import { FINISHES } from './materials.js';
 import { budget } from './planner.js';
 import { download, slug, blobToDataURL, dataURLToBlob, rad, uid } from './util.js';
@@ -133,7 +133,7 @@ export function exportCSV(app) {
         const s = mesh[0].geometry.boundingBox.getSize(new THREE.Vector3());
         fmt = `${Math.round(Math.max(s.x, s.z) * 1000)} x ${Math.round(s.y * 1000)}`;
       }
-      lines.push([o.name, { image: 'avant', imageBack: 'arrière', imageSide: 'côté' }[k], m?.name || '', fmt, ud?.dpi?.[k] ? ud.dpi[k] + ' dpi' : ''].map(esc).join(';'));
+      lines.push([o.name, ({ image: 'avant', imageBack: 'arrière', imageSide: 'côté' }[k] || IMAGE_LABELS[k] || k), m?.name || '', fmt, ud?.dpi?.[k] ? ud.dpi[k] + ' dpi' : ''].map(esc).join(';'));
     }
   }
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
@@ -442,7 +442,7 @@ function dimV(doc, y0, y1, x, val, fs = 7) {
 
 function referencedAssets(p) {
   const ids = new Set();
-  for (const o of p.objects) for (const k of ['image', 'imageBack', 'imageSide', 'model']) if (o[k]) ids.add(o[k]);
+  for (const o of p.objects) for (const k of [...ALL_IMAGE_KEYS, 'model']) if (o[k]) ids.add(o[k]);
   if (p.stand.plan?.asset) ids.add(p.stand.plan.asset);
   if (p.stand.floor?.asset) ids.add(p.stand.floor.asset);
   for (const f of assets.listAssets('font')) ids.add(f.id);
