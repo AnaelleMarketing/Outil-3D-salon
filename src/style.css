@@ -455,3 +455,5 @@ body.hide-left .left, body.hide-right .right { display: none; }
 @media (max-width: 960px) {
   .status-sel { display: none; }
 }
+.coach-toggle { margin-right: 6px; flex-shrink: 0; }
+.coach-toggle.on { background: var(--accent2); color: var(--accent); border-color: #9cc3d6; }

@@ -89,7 +89,7 @@ export class UI {
     this.stepbar = h('nav', { class: 'stepbar' });
     this.toasts = h('div', { class: 'toasts' });
     this.step = 0;
-    this.coachOpen = true;
+    this.coachOpen = false;
     a.root.append(this.top, h('div', { class: 'body' }, this.left, h('div', { class: 'center' }, this.stepbar, this.viewport), this.right), this.toasts);
   }
 
@@ -1661,6 +1661,7 @@ export class UI {
     this.stepbar.replaceChildren(
       ...STEPS.map((st, i) => h('button', { class: 'step' + (i === this.step ? ' on' : '') + (i < this.step ? ' done' : ''), onClick: () => this.goStep(i) }, h('span', { class: 'num' }, i < this.step ? '✓' : String(i + 1)), st.label)),
       h('span', { class: 'sp' }),
+      h('button', { class: 'btn sm coach-toggle' + (this.coachOpen ? ' on' : ''), title: 'Afficher ou masquer le conseil de l’étape', onClick: () => ((this.coachOpen = !this.coachOpen), this.renderSteps()) }, 'ⓘ Conseil'),
       this.step < STEPS.length - 1 ? h('button', { class: 'btn sm primary', onClick: () => this.goStep(this.step + 1) }, 'Étape suivante →') : null,
     );
     const st = STEPS[this.step];
@@ -1674,7 +1675,6 @@ export class UI {
   goStep(i) {
     const a = this.app;
     this.step = i;
-    this.coachOpen = true;
     const st = STEPS[i];
     this.libFilter = st.cats || null;
     if (st.left) this.ltab = st.left;
