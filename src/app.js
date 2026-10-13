@@ -61,9 +61,10 @@ export class App {
     if (!p) p = medicaProject();
     this.readOnly = params.has('visite');
     document.body.classList.toggle('readonly', this.readOnly);
+    // la collaboration doit exister avant le premier affichage (un projet partagé peut s'ouvrir au démarrage)
+    this.collab = new Collab(this, this.readOnly ? null : this.me);
     await this.loadProject(p, { fresh: !pid });
     if (this.readOnly) this.ui.toast('Mode visite : lecture et commentaires uniquement.');
-    this.collab = new Collab(this, this.readOnly ? null : this.me);
     this.collab.start();
     this.ui.renderTop();
   }

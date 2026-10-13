@@ -240,7 +240,7 @@ export class UI {
     this.syncState = state;
     if (!this.syncEl) return;
     const p = this.app.project;
-    const others = (p?.shared?.members || []).filter((m) => m !== this.app.me?.user).map((m) => this.app.collab.name(m));
+    const others = (p?.shared?.members || []).filter((m) => m !== this.app.me?.user).map((m) => this.app.collab?.name(m) || m);
     const txt = !p?.shared ? '' : { pending: 'Synchronisation…', error: 'Synchronisation en échec – nouvel essai à la prochaine modification' }[state] || 'Partagé' + (others.length ? ' avec ' + others.join(', ') : '') + ' · synchronisé ✓';
     this.syncEl.textContent = txt;
     this.syncEl.style.display = txt ? '' : 'none';
@@ -1536,7 +1536,7 @@ export class UI {
             'div',
             { class: 'project' + (cur ? ' current' : '') },
             h('div', { class: 'pthumb' }, m.thumb ? h('img', { src: m.thumb }) : null),
-            h('div', { class: 'pmeta' }, h('b', {}, m.name), h('small', {}, [m.salon, m.w && `${m.w} × ${m.d} m`, fmtDate(m.updated)].filter(Boolean).join(' · ')), h('span', { class: 'st ' + (m.status || 'brouillon') }, { brouillon: 'Brouillon', avalider: 'À valider', valide: 'Validé' }[m.status || 'brouillon']), m.shared ? h('span', { class: 'shared-tag' }, m.sharedFrom ? 'Partagé par ' + a.collab.name(m.sharedFrom) : 'Partagé') : null),
+            h('div', { class: 'pmeta' }, h('b', {}, m.name), h('small', {}, [m.salon, m.w && `${m.w} × ${m.d} m`, fmtDate(m.updated)].filter(Boolean).join(' · ')), h('span', { class: 'st ' + (m.status || 'brouillon') }, { brouillon: 'Brouillon', avalider: 'À valider', valide: 'Validé' }[m.status || 'brouillon']), m.shared ? h('span', { class: 'shared-tag' }, m.sharedFrom ? 'Partagé par ' + (a.collab?.name(m.sharedFrom) || m.sharedFrom) : 'Partagé') : null),
             h(
               'div',
               { class: 'pact' },
