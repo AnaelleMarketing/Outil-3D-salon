@@ -1,5 +1,6 @@
 // Protection du site sur Vercel : page de connexion (identifiant + code) et cookie de session signé.
-// Variables d'environnement Vercel : STAND_USER, STAND_PASS, STAND_SECRET.
+// Variables d'environnement Vercel : STAND_USERS (JSON {identifiant: code}), STAND_SECRET.
+// (STAND_USER / STAND_PASS restent acceptés comme compte unique de secours.)
 
 export const config = {
   matcher: ['/((?!brand/|mentions-legales).*)'],
@@ -27,12 +28,27 @@ function getCookie(req, name) {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
-async function validSession(req, secret) {
+/** Comptes autorisés : { identifiant (minuscules) : code } */
+function accounts() {
+  const out = {};
+  try {
+    Object.assign(out, JSON.parse(process.env.STAND_USERS || '{}'));
+  } catch (e) {
+    /* variable mal formée : on ignore */
+  }
+  if (process.env.STAND_USER && process.env.STAND_PASS) out[process.env.STAND_USER.toLowerCase()] ??= process.env.STAND_PASS;
+  return Object.fromEntries(Object.entries(out).map(([k, v]) => [k.toLowerCase(), String(v)]));
+}
+
+/** Jeton de session : identifiant~expiration.signature */
+async function sessionUser(req, secret) {
   const v = getCookie(req, COOKIE);
-  if (!v) return false;
-  const [exp, sig] = v.split('.');
-  if (!exp || !sig || Number(exp) < Date.now()) return false;
-  return safeEqual(sig, await hmac(exp, secret));
+  if (!v) return null;
+  const [payload, sig] = v.split('.');
+  const [user, exp] = (payload || '').split('~');
+  if (!user || !exp || !sig || Number(exp) < Date.now()) return null;
+  if (!(user in accounts())) return null;
+  return safeEqual(sig, await hmac(payload, secret)) ? user : null;
 }
 
 const next = () => new Response(null, { headers: { 'x-middleware-next': '1' } });
@@ -64,8 +80,9 @@ button{width:100%;height:48px;border:0;border-radius:24px;background:#fff;color:
 
 export default async function middleware(req) {
   const url = new URL(req.url);
-  const { STAND_USER, STAND_PASS, STAND_SECRET } = process.env;
-  if (!STAND_USER || !STAND_PASS || !STAND_SECRET) return new Response('Site non configuré.', { status: 503 });
+  const { STAND_SECRET } = process.env;
+  const users = accounts();
+  if (!STAND_SECRET || !Object.keys(users).length) return new Response('Site non configuré.', { status: 503 });
 
   if (url.pathname === '/__logout') {
     return new Response(null, { status: 303, headers: { location: '/', 'set-cookie': `${COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax` } });
@@ -73,19 +90,21 @@ export default async function middleware(req) {
 
   if (url.pathname === '/__login' && req.method === 'POST') {
     const form = await req.formData();
-    const ok = safeEqual(String(form.get('user') || '').trim(), STAND_USER) & safeEqual(String(form.get('pass') || ''), STAND_PASS);
+    const user = String(form.get('user') || '').trim().toLowerCase();
+    const ok = user in users && safeEqual(String(form.get('pass') || ''), users[user]);
     if (!ok) {
       await new Promise((r) => setTimeout(r, 900)); // freine les essais répétés
       return loginPage('Identifiant ou code incorrect.');
     }
-    const exp = String(Date.now() + DAYS * 864e5);
-    const token = `${exp}.${await hmac(exp, STAND_SECRET)}`;
+    const payload = `${user}~${Date.now() + DAYS * 864e5}`;
+    const token = `${payload}.${await hmac(payload, STAND_SECRET)}`;
     return new Response(null, {
       status: 303,
       headers: { location: '/', 'set-cookie': `${COOKIE}=${encodeURIComponent(token)}; Path=/; Max-Age=${DAYS * 86400}; HttpOnly; Secure; SameSite=Lax` },
     });
   }
 
-  if (await validSession(req, STAND_SECRET)) return next();
+  if (await sessionUser(req, STAND_SECRET)) return next();
+  if (url.pathname.startsWith('/api/')) return new Response(JSON.stringify({ error: 'non connecté' }), { status: 401, headers: { 'content-type': 'application/json' } });
   return loginPage();
 }

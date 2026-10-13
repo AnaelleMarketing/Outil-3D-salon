@@ -9,6 +9,7 @@
     "preview": "vite preview --host 127.0.0.1 --port 5180"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.1",
     "idb-keyval": "6.2.1",
     "jspdf": "2.5.2",
     "pdfjs-dist": "4.8.69",

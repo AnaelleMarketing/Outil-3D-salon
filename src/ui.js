@@ -10,7 +10,7 @@ import { DEVICE_PALETTES } from './devices.js';
 import { SPIRIT_CHIPS, generateProposals, renderPreview } from './assistant.js';
 import { showSplash } from './splash.js';
 import * as X from './exporters.js';
-import { get } from 'idb-keyval';
+import { get } from './store.js';
 
 const SYSTEM_FONTS = ['Helvetica Neue', 'Avenir Next', 'Avenir Next Condensed', 'Arial', 'Futura', 'Gill Sans', 'Georgia', 'Times New Roman', 'Verdana'];
 const ICON = {
@@ -31,6 +31,7 @@ const ICON = {
   star: '<svg viewBox="0 0 24 24"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1Z"/></svg>',
   camera: '<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
   spark: '<svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.9L19 9.7l-5.2 1.8L12 16.5l-1.8-5L5 9.7l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>',
+  users: '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   upload: '<svg viewBox="0 0 24 24"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></svg>',
 };
 const icon = (n) => h('span', { class: 'ic', html: ICON[n] });
@@ -219,12 +220,32 @@ export class UI {
       )),
       (this.budgetChip = h('button', { class: 'budget-chip', title: 'Estimation budgétaire (tarifs indicatifs modifiables)', onClick: () => this.showTab('budget', true) }, '')),
       this.exportMenu(),
+      a.collab?.enabled ? (this.collabBtn = h('button', { class: 'tb collab-btn', title: 'Collaborer', onClick: () => this.collabDialog() }, icon('users'), h('span', {}, 'Collaborer'), h('span', { class: 'cbadge' }))) : null,
       b('share', 'Partager', 'share', () => this.shareDialog()),
       b('help', '', 'help', () => this.helpDialog(), 'Aide et raccourcis'),
-      !/^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? h('a', { class: 'tb', href: '/__logout', title: 'Se déconnecter' }, 'Déconnexion') : null,
+      !/^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? h('a', { class: 'tb', href: '/__logout', title: 'Se déconnecter' + (a.me ? ' (' + a.me.name + ')' : '') }, a.me ? h('span', { class: 'user-chip' }, a.me.name) : null, 'Déconnexion') : null,
       ].filter(Boolean),
     );
     this.renderTopState();
+    this.renderCollabBadge();
+  }
+
+  renderCollabBadge() {
+    const el = this.collabBtn?.querySelector('.cbadge');
+    if (!el) return;
+    const n = this.app.collab?.incoming.length || 0;
+    el.textContent = n ? String(n) : '';
+    el.style.display = n ? '' : 'none';
+  }
+
+  setSyncState(state) {
+    this.syncState = state;
+    if (!this.syncEl) return;
+    const p = this.app.project;
+    const others = (p?.shared?.members || []).filter((m) => m !== this.app.me?.user).map((m) => this.app.collab.name(m));
+    const txt = !p?.shared ? '' : { pending: 'Synchronisation…', error: 'Synchronisation en échec – nouvel essai à la prochaine modification' }[state] || 'Partagé' + (others.length ? ' avec ' + others.join(', ') : '') + ' · synchronisé ✓';
+    this.syncEl.textContent = txt;
+    this.syncEl.style.display = txt ? '' : 'none';
   }
 
   renderTopState() {
@@ -305,7 +326,8 @@ export class UI {
       ),
       m === 'visitor' ? null : h('button', { class: 'hud-btn', onClick: () => (m === 'plan' ? this.setMode('plan') : a.viewer.homeOrbit()) }, 'Recentrer'),
     );
-    this.status.replaceChildren(h('span', {}, hint), h('span', { class: 'sp' }), h('span', { class: 'fps' }, (a.viewer?.fps || '–') + ' img/s'), h('span', {}, a.project.objects.length + ' objets'), (this.saveEl = h('span', { class: 'save' }, a.readOnly ? 'Lecture seule' : 'Enregistré')));
+    this.status.replaceChildren(h('span', {}, hint), h('span', { class: 'sp' }), h('span', { class: 'fps' }, (a.viewer?.fps || '–') + ' img/s'), h('span', {}, a.project.objects.length + ' objets'), (this.syncEl = h('span', { class: 'sync' })), (this.saveEl = h('span', { class: 'save' }, a.readOnly ? 'Lecture seule' : 'Enregistré')));
+    this.setSyncState(this.syncState);
   }
 
   setFps(f) {
@@ -1450,7 +1472,7 @@ export class UI {
             'div',
             { class: 'project' + (cur ? ' current' : '') },
             h('div', { class: 'pthumb' }, m.thumb ? h('img', { src: m.thumb }) : null),
-            h('div', { class: 'pmeta' }, h('b', {}, m.name), h('small', {}, [m.salon, m.w && `${m.w} × ${m.d} m`, fmtDate(m.updated)].filter(Boolean).join(' · ')), h('span', { class: 'st ' + (m.status || 'brouillon') }, { brouillon: 'Brouillon', avalider: 'À valider', valide: 'Validé' }[m.status || 'brouillon'])),
+            h('div', { class: 'pmeta' }, h('b', {}, m.name), h('small', {}, [m.salon, m.w && `${m.w} × ${m.d} m`, fmtDate(m.updated)].filter(Boolean).join(' · ')), h('span', { class: 'st ' + (m.status || 'brouillon') }, { brouillon: 'Brouillon', avalider: 'À valider', valide: 'Validé' }[m.status || 'brouillon']), m.shared ? h('span', { class: 'shared-tag' }, m.sharedFrom ? 'Partagé par ' + a.collab.name(m.sharedFrom) : 'Partagé') : null),
             h(
               'div',
               { class: 'pact' },
@@ -1463,6 +1485,24 @@ export class UI {
       }
     };
     render();
+    // projets partagés avec moi pas encore présents sur cet ordinateur
+    if (a.collab?.enabled) {
+      const remote = a.collab.shared.filter((s) => !a.projectsIndex.some((m) => m.id === s.id));
+      if (remote.length)
+        list.prepend(
+          h('h4', {}, 'Partagés avec vous'),
+          ...remote.map((s) =>
+            h(
+              'div',
+              { class: 'project' },
+              h('div', { class: 'pthumb' }),
+              h('div', { class: 'pmeta' }, h('b', {}, s.name || 'Projet'), h('small', {}, [s.salon, 'propriétaire : ' + a.collab.name(s.owner)].filter(Boolean).join(' · ')), h('span', { class: 'shared-tag' }, 'Partagé')),
+              h('div', { class: 'pact' }, h('button', { class: 'btn sm primary', onClick: () => (close(), this.run('Ouverture du projet partagé', async () => a.loadProject(await a.collab.pull(s.id)))) }, 'Ouvrir')),
+            ),
+          ),
+          h('h4', {}, 'Mes projets'),
+        );
+    }
     const { close, done } = this.modal(
       'Projets',
       h(
@@ -1867,6 +1907,83 @@ export class UI {
       );
     });
     wrap.replaceChildren(h('div', { class: 'row gap', style: { marginBottom: '10px' } }, h('button', { class: 'btn sm', onClick: back }, '← Modifier la demande'), h('span', { class: 'muted', style: { margin: 0 } }, 'Deux implantations calculées à partir de votre description. Chacune reste entièrement modifiable.')), h('div', { class: 'proposals' }, cards));
+  }
+
+  /* ---------------- collaboration ---------------- */
+
+  async collabDialog() {
+    const a = this.app;
+    const c = a.collab;
+    const body = h('div', { class: 'collab' }, h('p', { class: 'muted' }, 'Chargement…'));
+    const { close } = this.modal('Collaborer', body, [['Fermer', null]], 'wide');
+    let directory = [];
+    const draw = () => {
+      const p = a.project;
+      const me = c.me.user;
+      const label = (r) => (r.type === 'invite' ? `${c.name(r.from)} vous invite à collaborer sur « ${r.projectName} »` : `${c.name(r.from)} demande à collaborer sur « ${r.projectName} »`);
+      const incoming = c.incoming;
+      const sent = c.requests.filter((r) => r.from === me).slice(0, 10);
+      const userSel = h('select', {}, c.me.users.map((u) => h('option', { value: u.id }, u.name)));
+      const msg = h('input', { placeholder: 'Message (facultatif)' });
+      const isOwner = !p.shared || p.shared.owner === me;
+      body.replaceChildren(
+        h('p', { class: 'muted' }, `Connectée en tant que ${c.me.name}. Un projet partagé est enregistré en ligne (stockage privé, Paris) et se met à jour chez chaque membre ; les autres projets restent personnels.`),
+        h('h4', {}, 'Demandes reçues'),
+        incoming.length
+          ? incoming.map((r) =>
+              h(
+                'div',
+                { class: 'creq' },
+                h('div', {}, h('b', {}, label(r)), r.message ? h('small', {}, '« ' + r.message + ' »') : null, h('small', {}, fmtDate(r.created))),
+                h(
+                  'div',
+                  { class: 'row gap' },
+                  h('button', { class: 'btn sm primary', onClick: () => this.run('Réponse', async () => { const opened = await c.respond(r, true); if (opened) { close(); await a.loadProject(opened); this.toast('Projet partagé ouvert : vos modifications sont visibles par ' + c.name(r.from) + '.'); } else draw(); }) }, 'Accepter'),
+                  h('button', { class: 'btn sm', onClick: () => this.run('Réponse', async () => { await c.respond(r, false); draw(); }) }, 'Refuser'),
+                ),
+              ),
+            )
+          : h('p', { class: 'muted' }, 'Aucune demande en attente.'),
+        h('h4', {}, `Projet ouvert : « ${p.name} »`),
+        p.shared
+          ? h('p', {}, 'Partagé – membres : ' + p.shared.members.map((m) => c.name(m) + (m === p.shared.owner ? ' (propriétaire)' : '')).join(', '))
+          : h('p', { class: 'muted' }, 'Ce projet est personnel.'),
+        isOwner
+          ? h('div', { class: 'row gap wrap' }, field('Inviter', userSel), msg, h('button', { class: 'btn sm primary', onClick: () => this.run('Invitation', async () => { await c.invite(userSel.value, msg.value); this.toast('Invitation envoyée à ' + c.name(userSel.value) + '.'); draw(); }) }, 'Inviter à collaborer'))
+          : null,
+        p.shared ? h('button', { class: 'btn sm', onClick: async () => { const own = p.shared.owner === me; if (!(await this.confirm(own ? 'Arrêter le partage ? La copie en ligne sera supprimée ; chacun garde sa copie locale.' : 'Quitter ce projet partagé ? Vous en gardez une copie locale.'))) return; await this.run('Partage', () => c.leave(p.id)); draw(); } }, p.shared.owner === me ? 'Arrêter le partage' : 'Quitter le projet partagé') : null,
+        h('h4', {}, 'Demander à collaborer sur un projet'),
+        directory.some((d) => d.projects.length)
+          ? directory.map((d) =>
+              h(
+                'div',
+                {},
+                h('div', { class: 'brand-sep' }, 'Projets de ' + d.name),
+                d.projects.length
+                  ? d.projects.map((pr) => {
+                      const member = c.shared.some((s) => s.id === pr.id);
+                      const pending = c.requests.some((r) => r.projectId === pr.id && r.from === me && r.status === 'pending');
+                      return h('div', { class: 'creq' }, h('div', {}, h('b', {}, pr.name), h('small', {}, [pr.salon, pr.updated && fmtDate(pr.updated)].filter(Boolean).join(' · '))), member ? h('span', { class: 'shared-tag' }, 'Vous collaborez') : pending ? h('span', { class: 'muted' }, 'Demande envoyée') : h('button', { class: 'btn sm', onClick: () => this.run('Demande', async () => { await c.requestJoin(d.user, pr.id, pr.name); this.toast('Demande envoyée à ' + d.name + '.'); draw(); }) }, 'Demander à collaborer'));
+                    })
+                  : h('p', { class: 'muted' }, 'Aucun projet.'),
+              ),
+            )
+          : h('p', { class: 'muted' }, 'Aucun projet disponible pour le moment.'),
+        h('h4', {}, 'Projets partagés'),
+        c.shared.length
+          ? c.shared.map((s) => h('div', { class: 'creq' }, h('div', {}, h('b', {}, s.name || 'Projet'), h('small', {}, 'Propriétaire : ' + c.name(s.owner) + ' · membres : ' + s.members.map((m) => c.name(m)).join(', '))), s.id === p.id ? h('span', { class: 'muted' }, 'ouvert') : h('button', { class: 'btn sm primary', onClick: () => (close(), this.run('Ouverture', async () => a.loadProject(await c.pull(s.id)))) }, 'Ouvrir')))
+          : h('p', { class: 'muted' }, 'Aucun projet partagé.'),
+        sent.length ? h('h4', {}, 'Demandes envoyées') : null,
+        sent.map((r) => h('div', { class: 'creq' }, h('div', {}, h('b', {}, (r.type === 'invite' ? 'Invitation à ' : 'Demande à ') + c.name(r.to) + ' – « ' + r.projectName + ' »'), h('small', {}, fmtDate(r.created))), h('span', { class: 'rstatus ' + r.status }, { pending: 'En attente', accepted: 'Acceptée', declined: 'Refusée' }[r.status]))),
+      );
+    };
+    try {
+      await c.refresh();
+      directory = await c.api('directory');
+    } catch (e) {
+      this.toast(e.message, 'error');
+    }
+    draw();
   }
 
   /* ---------------- dialogues génériques ---------------- */

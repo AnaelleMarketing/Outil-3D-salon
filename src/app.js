@@ -1,6 +1,6 @@
 // Cœur de l'application : état du projet, synchronisation 3D, interactions, alertes, persistance.
 import * as THREE from 'three';
-import { get, set, del } from 'idb-keyval';
+import { get, set, del } from './store.js';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { Viewer } from './viewer.js';
 import * as assets from './assets.js';
@@ -9,6 +9,7 @@ import { floorMaterial } from './materials.js';
 import { medicaProject, registerBuiltins, emptyProject } from './templates.js';
 import { uid, rad, deg, h } from './util.js';
 import { UI } from './ui.js';
+import { Collab } from './collab.js';
 
 const STAND_KEYS = ['w', 'd', 'hMax', 'open', 'floor', 'grid', 'snap', 'dims', 'env', 'aisle', 'plan'];
 
@@ -31,6 +32,7 @@ export class App {
     await assets.initAssets();
     await registerBuiltins();
     this.settings = { unit: 'mm', author: '', ...((await get('settings')) || {}) };
+    if (!this.settings.author && this.me?.name) this.settings.author = this.me.name;
     this.library = (await get('library')) || [];
     this.projectsIndex = (await get('projects')) || [];
 
@@ -48,6 +50,41 @@ export class App {
     document.body.classList.toggle('readonly', this.readOnly);
     await this.loadProject(p, { fresh: !pid });
     if (this.readOnly) this.ui.toast('Mode visite : lecture et commentaires uniquement.');
+    this.collab = new Collab(this, this.readOnly ? null : this.me);
+    this.collab.start();
+    this.ui.renderTop();
+  }
+
+  /* ---------------- projets partagés ---------------- */
+
+  /** Enregistre localement un projet (sans repasser par l'historique) et met à jour la liste des projets */
+  async persistShared(p) {
+    await set('project:' + p.id, p);
+    await this.indexProject(p, p.shared && p.shared.owner !== this.me?.user ? p.shared.owner : null);
+    if (p === this.project) this.ui.refresh();
+  }
+
+  async indexProject(p, sharedFrom) {
+    let meta = this.projectsIndex.find((m) => m.id === p.id);
+    if (!meta) {
+      meta = { id: p.id };
+      this.projectsIndex.unshift(meta);
+    }
+    Object.assign(meta, { name: p.name, salon: p.salon, updated: p.updated || Date.now(), w: p.stand.w, d: p.stand.d, status: p.status, shared: !!p.shared, sharedFrom: sharedFrom || null });
+    await set('projects', this.projectsIndex);
+  }
+
+  /** Remplace le projet ouvert par sa version en ligne, sans bouger la caméra */
+  async replaceProject(p) {
+    const base = emptyProject();
+    this.project = { ...base, ...p, stand: { ...base.stand, ...p.stand } };
+    if (this.selected && !this.obj(this.selected)) this.selected = null;
+    await this.preloadAssets();
+    this.history = [JSON.stringify(this.project)];
+    this.hIndex = 0;
+    this.sync();
+    this.ui.refreshAll();
+    this.ui.setSyncState('ok');
   }
 
   /* ---------------- projet ---------------- */
@@ -185,6 +222,8 @@ export class App {
     }
     this.saveState = 'saved';
     if (p === this.project) this.ui.setSaveState('saved');
+    if (p === this.project && p.shared) this.collab?.schedulePush();
+    this.collab?.directoryLater();
   }
 
   async snapshot(label) {

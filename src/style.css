@@ -397,3 +397,18 @@ body.hide-left .left, body.hide-right .right { display: none; }
 .splash-foot a { color: rgba(211,226,231,.85); }
 .splash-foot { z-index: 3; }
 .door-btn { margin: 8px 0 0; height: 38px; font-weight: 600; }
+
+/* ---------- collaboration ---------- */
+.collab-btn { position: relative; }
+.cbadge { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; border-radius: 9px; background: var(--err); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; padding: 0 4px; }
+.user-chip { background: var(--accent2); color: var(--accent); border-radius: 10px; padding: 1px 8px; font-size: 12px; font-weight: 600; margin-right: 6px; }
+.shared-tag { display: inline-block; font-size: 11px; font-weight: 600; color: #6a3f9a; background: #f1eaf8; border-radius: 10px; padding: 1px 8px; margin-top: 2px; width: fit-content; }
+.creq { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line2); }
+.creq small { display: block; color: var(--ink3); font-size: 11.5px; }
+.collab .row.gap.wrap { align-items: flex-end; }
+.collab .row input { height: 30px; border: 1px solid var(--line); border-radius: 6px; padding: 0 8px; margin-bottom: 9px; }
+.rstatus { font-size: 12px; font-weight: 600; }
+.rstatus.pending { color: var(--warn); }
+.rstatus.accepted { color: var(--ok); }
+.rstatus.declined { color: var(--err); }
+.status .sync { color: #c7b6ff; }

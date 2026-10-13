@@ -1,6 +1,6 @@
 // Gestion des fichiers importés (visuels, vidéos, modèles 3D, polices), stockés en IndexedDB.
 import * as THREE from 'three';
-import { get, set, del } from 'idb-keyval';
+import { get, set, del } from './store.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
