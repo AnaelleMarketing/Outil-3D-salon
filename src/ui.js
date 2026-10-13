@@ -1527,7 +1527,7 @@ export class UI {
     const a = this.app;
     const name = h('input', { placeholder: 'ex. Arab Health 2027' });
     const salon = h('input', { placeholder: 'Salon' });
-    const tpl = h('select', {}, TEMPLATES.map((t) => h('option', { value: t.id }, t.label)));
+    const tpl = h('select', {}, TEMPLATES.filter((t) => !t.owner || !a.me || t.owner === a.me.user).map((t) => h('option', { value: t.id }, t.label)));
     tpl.value = '6x3';
     const W = h('input', { value: a.toUnit(6), inputmode: 'decimal' });
     const D = h('input', { value: a.toUnit(3), inputmode: 'decimal' });

@@ -42,6 +42,8 @@ export const CATALOG = [
   { type: 'bin', label: 'Poubelle', cat: 'Mobilier', kw: 'corbeille', d: { w: 0.3, d: 0.3, h: 0.6, finish: 'blanc_mat' } },
 
   { type: 'plinth', label: 'Socle / podium produit', cat: 'PLV & écrans', kw: 'colonne présentoir cube', d: { w: 0.4, d: 0.4, h: 1, finish: 'blanc_laque', led: 'aucune', gMargin: 0.04, gRadius: 0 } },
+  { type: 'vitrine', label: 'Vitrine haute en verre (étagères)', cat: 'PLV & écrans', kw: 'showcase vitrine verre colonne', d: { w: 0.5, d: 0.5, h: 2, shelves: 4, finish: 'blanc_laque' } },
+  { type: 'vitrineBasse', label: 'Vitrine basse fermant à clé (dessus verre)', cat: 'PLV & écrans', kw: 'showcase vitrine comptoir verre lockable', d: { w: 0.8, d: 0.5, h: 1.05, finish: 'blanc_laque', gMargin: 0.08 } },
   { type: 'display', label: 'Présentoir à étagères', cat: 'PLV & écrans', kw: 'vitrine étagère', d: { w: 0.8, d: 0.35, h: 1.8, finish: 'blanc_laque', shelves: 3 } },
   { type: 'brochure', label: 'Porte-catalogues', cat: 'PLV & écrans', kw: 'brochure flyers documentation', d: { w: 0.3, d: 0.35, h: 1.5, finish: 'plexi_depoli' } },
   { type: 'kakemono', label: 'Kakémono enrouleur (roll-up)', cat: 'PLV & écrans', kw: 'kakemono rollup roll-up enrouleur visuel bannière', d: { w: 0.85, h: 2, mount: 'enrouleur', imageFit: 'cover' } },
@@ -98,6 +100,8 @@ export const TYPES = {
   coatRack: { label: 'Portemanteau', fields: ['h', 'finish'] },
   bin: { label: 'Poubelle', fields: ['w', 'h', 'finish', 'color'] },
   plinth: { label: 'Socle', fields: ['w', 'd', 'h', 'led', 'finish', 'color'], images: ['image'], graphic: true, support: true },
+  vitrine: { label: 'Vitrine haute', fields: ['w', 'd', 'h', 'shelves', 'finish', 'color'], support: true },
+  vitrineBasse: { label: 'Vitrine basse', fields: ['w', 'd', 'h', 'finish', 'color'], images: ['image'], support: true },
   display: { label: 'Présentoir', fields: ['w', 'd', 'h', 'y', 'shelves', 'finish', 'color'], images: ['image'], support: true },
   brochure: { label: 'Porte-catalogues', fields: ['w', 'd', 'h', 'finish'], images: ['image'] },
   kakemono: { label: 'Kakémono', fields: ['kformat', 'w', 'h', 'mount', 'y'], images: ['image', 'imageBack'] },
@@ -629,6 +633,40 @@ function blockWithGraphic(o, ud, withTop) {
   return g;
 }
 B.counter = (o, ud) => blockWithGraphic(o, ud, true);
+
+/** Vitrine haute : socle, colonne de verre et étagères en verre */
+B.vitrine = (o) => {
+  const g = new THREE.Group();
+  const base = getMaterial(o.finish, o.color);
+  const glass = getMaterial('verre');
+  const bh = 0.12;
+  g.add(boxAt(o.w, bh, o.d, 0, bh / 2, 0, base), boxAt(o.w, 0.04, o.d, 0, o.h - 0.02, 0, base));
+  const gh = o.h - bh - 0.04;
+  const t = 0.008;
+  for (const k of [-1, 1]) g.add(boxAt(t, gh, o.d, k * (o.w / 2 - t / 2), bh + gh / 2, 0, glass), boxAt(o.w, gh, t, 0, bh + gh / 2, k * (o.d / 2 - t / 2), glass));
+  const n = o.shelves || 4;
+  for (let i = 1; i < n; i++) g.add(boxAt(o.w - 0.03, 0.008, o.d - 0.03, 0, bh + (gh * i) / n, 0, glass));
+  const l = boxAt(o.w - 0.06, 0.01, 0.015, 0, o.h - 0.05, o.d / 2 - 0.03, emissiveMaterial(kelvinToColor(4500), 3));
+  l.userData.emissive = true;
+  g.add(l);
+  return g;
+};
+
+/** Vitrine basse fermant à clé : caisson avec visuel + cloche de verre */
+B.vitrineBasse = (o, ud) => {
+  const g = new THREE.Group();
+  const mat = getMaterial(o.finish, o.color);
+  const glass = getMaterial('verre');
+  const ch = o.h - 0.3;
+  g.add(boxAt(o.w, ch, o.d, 0, ch / 2, 0, mat));
+  const gh = 0.3;
+  const t = 0.006;
+  g.add(boxAt(o.w, t, o.d, 0, o.h - t / 2, 0, glass));
+  for (const k of [-1, 1]) g.add(boxAt(t, gh, o.d, k * (o.w / 2 - t / 2), ch + gh / 2, 0, glass), boxAt(o.w, gh, t, 0, ch + gh / 2, k * (o.d / 2 - t / 2), glass));
+  const m = o.gMargin ?? 0.06;
+  addGraphic(g, o, 'image', o.w - 2 * m, ch - 2 * m, 0, new THREE.Vector3(0, ch / 2, o.d / 2 + 0.002), 0, ud);
+  return g;
+};
 B.plinth = (o, ud) => blockWithGraphic(o, ud, false);
 
 B.tableHaute = (o) => {

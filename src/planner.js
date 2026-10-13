@@ -70,6 +70,8 @@ export const DEFAULT_PRICES = {
   bin: { label: 'Poubelle', unit: 'u', price: 15, group: 'Mobilier' },
   plinth: { label: 'Socle / podium produit', unit: 'u', price: 90, group: 'PLV & écrans' },
   display: { label: 'Présentoir', unit: 'u', price: 180, group: 'PLV & écrans' },
+  vitrine: { label: 'Vitrine haute en verre', unit: 'u', price: 220, group: 'PLV & écrans' },
+  vitrineBasse: { label: 'Vitrine basse fermant à clé', unit: 'u', price: 160, group: 'PLV & écrans' },
   brochure: { label: 'Porte-catalogues', unit: 'u', price: 45, group: 'PLV & écrans' },
   rollup: { label: 'Roll-up', unit: 'u', price: 120, group: 'PLV & écrans' },
   kakemono: { label: 'Kakémono (structure)', unit: 'u', price: 70, group: 'PLV & écrans' },

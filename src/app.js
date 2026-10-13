@@ -6,7 +6,7 @@ import { Viewer } from './viewer.js';
 import * as assets from './assets.js';
 import { TYPES, buildObject, fromCatalog, isSupport, isStackable, noCollide } from './objects.js';
 import { floorMaterial } from './materials.js';
-import { medicaProject, registerBuiltins, emptyProject } from './templates.js';
+import { medicaProject, tradexProject, registerBuiltins, emptyProject } from './templates.js';
 import { uid, rad, deg, h } from './util.js';
 import { UI } from './ui.js';
 import { Collab } from './collab.js';
@@ -43,6 +43,15 @@ export class App {
     this.bindInput();
 
     const params = new URLSearchParams(location.search);
+    // stand WHX Dubai 2027 ajouté une fois dans la session d'Anaelle
+    let seeded = null;
+    if ((!this.me || this.me.user === 'anaelle') && !params.has('visite') && !(await get('seed:tradex'))) {
+      seeded = tradexProject();
+      await set('project:' + seeded.id, seeded);
+      await this.indexProject(seeded, null);
+      await set('seed:tradex', true);
+      await set('lastProject', seeded.id);
+    }
     const pid = params.get('visite') || params.get('p') || (await get('lastProject'));
     let p = pid ? await get('project:' + pid) : null;
     if (!p) p = medicaProject();

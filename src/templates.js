@@ -134,6 +134,27 @@ export async function registerBuiltins() {
     g.restore();
     await add('pillar', c, 'Pilier – Spengler Group');
   }
+  // Visuels du stand WHX Dubai 2027 (Tradex), redressés à partir de la projection du standiste
+  for (const [id, file, name] of [
+    ['tradex-rear', 'rear.jpg', 'WHX Dubai – cloison du fond'],
+    ['tradex-side', 'side.jpg', 'WHX Dubai – cloison latérale'],
+    ['tradex-lightbox', 'lightbox.jpg', 'WHX Dubai – caisson lumineux'],
+    ['tradex-logo-sm', 'logo-spengler-medical.jpg', 'Logo Spengler Medical (comptoir)'],
+    ['tradex-logo-spengler', 'logo-spengler-heart.jpg', 'Logo Spengler (vitrine)'],
+    ['tradex-logo-luxamed', 'logo-luxamed.jpg', 'Logo Luxamed (vitrine)'],
+  ]) {
+    try {
+      const r = await fetch('tradex/' + file);
+      if (r.ok) await assets.addAsset(await r.blob(), { id: 'builtin:' + id, name, kind: 'image', brand: 'Spengler', builtin: true, demo: true, library: false });
+    } catch (e) {
+      /* visuel facultatif */
+    }
+  }
+  {
+    const [c, g] = canvas(600, 330);
+    ['#111111', '#dd0000', '#ffcc00'].forEach((col, i) => ((g.fillStyle = col), g.fillRect(0, i * 110, 600, 110)));
+    await add('tradex-flag', c, 'Drapeau allemand');
+  }
   // Logo Spengler Medical (S + SPENGLER MEDICAL), versions grise et blanche
   const sLogo = await loadImg('brand/logo-s.png');
   for (const [id, ink, ink2] of [
@@ -282,6 +303,59 @@ export function medicaProject() {
   });
 }
 
+/** Stand WHX Dubai 2027 – German Healthcare Pavilion (Tradex), Luxamed / Spengler, stand S11.B70 */
+export function tradexProject() {
+  const W = 6.95;
+  const D = 2.95;
+  const objs = [
+    // structure
+    o('wall', 'Cloison du fond (visuel complet)', { x: W / 2, z: 0.05, w: W, d: 0.1, h: 3.6, finish: 'blanc_mat', image: 'builtin:tradex-rear', imageFit: 'stretch', gMargin: 0, zone: 'Structure' }),
+    o('wall', 'Cloison gauche Spengler Medical', { x: 0.05, z: 1.3, w: 2.4, d: 0.1, h: 2.3, rot: 90, finish: 'blanc_mat', image: 'builtin:tradex-side', imageFit: 'stretch', gMargin: 0, zone: 'Structure' }),
+    o('lightbox', 'Caisson lumineux Luxamed (S11.B70)', { x: 0.2, z: 2.58, w: 0.4, d: 0.16, h: 2.43, finish: 'noir_mat', image: 'builtin:tradex-lightbox', imageFit: 'stretch', glow: 0.9, zone: 'Structure' }),
+    o('wall', 'Bandeau du pavillon', { x: W / 2, z: 0.2, y: 3.6, w: W, d: 0.4, h: 0.3, finish: 'gris_clair', attached: true, zone: 'Structure' }),
+    o('visual', 'Drapeau allemand', { x: W - 0.32, z: 0.403, y: 3.6, w: 0.55, h: 0.3, image: 'builtin:tradex-flag', imageFit: 'stretch', zone: 'Structure' }),
+    ...[0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.45].map((x, i) => o('spot', 'Spot LED cloison ' + (i + 1), { x, z: 0.5, y: 3.58, rot: 180, tilt: 25, angle: 55, intensity: 8, kelvin: 4500, zone: 'Structure' })),
+    o('spot', 'Spot LED cloison gauche', { x: 0.45, z: 1.3, y: 2.32, rot: -90, tilt: 25, angle: 55, intensity: 7, kelvin: 4500, zone: 'Structure' }),
+    // espace rencontre
+    o('mangeDebout', 'Table ronde en bois', { x: 1.75, z: 1.15, w: 0.8, d: 0.8, h: 0.75, finish: 'bois_chene', zone: 'Rencontre' }),
+    o('chair', 'Chaise de réunion bois', { x: 1.75, z: 0.55, rot: 0, finish: 'bois_chene', legs: 'metal_brosse', zone: 'Rencontre' }),
+    o('chair', 'Chaise de réunion bois', { x: 1.75, z: 1.75, rot: 180, finish: 'bois_chene', legs: 'metal_brosse', zone: 'Rencontre' }),
+    o('chair', 'Chaise de réunion bois', { x: 1.12, z: 1.15, rot: 90, finish: 'bois_chene', legs: 'metal_brosse', zone: 'Rencontre' }),
+    o('chair', 'Chaise de réunion bois', { x: 2.38, z: 1.15, rot: -90, finish: 'bois_chene', legs: 'metal_brosse', zone: 'Rencontre' }),
+    o('bin', 'Poubelle', { x: 2.75, z: 0.42, w: 0.3, h: 0.6, finish: 'blanc_mat', zone: 'Rencontre' }),
+    o('mangeDebout', 'Mange-debout (bistro)', { x: 5.0, z: 1.05, w: 0.6, d: 0.6, h: 1.1, finish: 'blanc_laque', zone: 'Rencontre' }),
+    o('barChair', 'Tabouret de bar cuir', { x: 4.38, z: 1.0, rot: 90, w: 0.44, d: 0.48, h: 1.05, seatH: 0.76, style: 'classique', finish: 'blanc_laque', legs: 'chrome', zone: 'Rencontre' }),
+    o('barChair', 'Tabouret de bar cuir', { x: 5.55, z: 1.45, rot: -120, w: 0.44, d: 0.48, h: 1.05, seatH: 0.76, style: 'classique', finish: 'blanc_laque', legs: 'chrome', zone: 'Rencontre' }),
+    // présentation produits
+    o('vitrine', 'Vitrine en verre à étagères', { x: 0.42, z: 0.47, w: 0.5, d: 0.5, h: 2.0, shelves: 4, finish: 'blanc_laque', zone: 'Produits' }),
+    o('vitrineBasse', 'Vitrine fermant à clé Spengler', { x: 0.78, z: 2.05, w: 0.8, d: 0.5, h: 1.05, finish: 'blanc_laque', image: 'builtin:tradex-logo-spengler', imageFit: 'contain', imageOy: 0.4, gMargin: 0.1, zone: 'Produits' }),
+    o('vitrineBasse', 'Vitrine fermant à clé Luxamed', { x: 6.5, z: 1.9, w: 0.8, d: 0.5, h: 1.05, finish: 'blanc_laque', image: 'builtin:tradex-logo-luxamed', imageFit: 'contain', imageOy: 0.4, gMargin: 0.1, zone: 'Produits' }),
+    o('counter', 'Comptoir Spengler Medical', { x: 4.05, z: 1.78, w: 1.0, d: 0.5, h: 1.0, finish: 'blanc_mat', led: 'aucune', doors: 'deux', doorOpen: 0, image: 'builtin:tradex-logo-sm', imageFit: 'contain', imageOy: 0.5, gMargin: 0.1, zone: 'Produits' }),
+    o('plinth', 'Podium bois 1', { x: 2.62, z: 1.97, w: 0.5, d: 0.5, h: 0.8, finish: 'blanc_mat', zone: 'Produits' }),
+    o('plinth', 'Podium bois 2', { x: 3.12, z: 1.97, w: 0.5, d: 0.5, h: 1.0, finish: 'blanc_mat', zone: 'Produits' }),
+    o('plinth', 'Podium bois 2', { x: 2.87, z: 2.5, w: 0.5, d: 0.5, h: 0.5, finish: 'blanc_mat', zone: 'Produits' }),
+    o('plinth', 'Podium bois 3', { x: 5.55, z: 2.5, w: 0.5, d: 0.5, h: 0.7, finish: 'blanc_mat', zone: 'Produits' }),
+    o('brochure', 'Grand porte-brochures', { x: 6.72, z: 2.62, w: 0.35, d: 0.35, h: 1.6, finish: 'plexi_depoli', zone: 'Produits' }),
+    // écrans
+    o('tv', 'Écran LED 43" (mural)', { x: 2.95, z: 0.13, y: 2.55, inches: 43, mount: 'mural', finish: 'noir_mat', zone: 'Structure' }),
+    o('tv', 'Écran LED 43" sur pied', { x: 1.76, z: 2.5, inches: 43, mount: 'pied', screenY: 1.0, finish: 'noir_mat', zone: 'Produits' }),
+  ];
+  return emptyProject({
+    name: 'WHX Dubai 2027 – Luxamed / Spengler (S11.B70)',
+    salon: 'WHX Dubai 2027',
+    lieu: 'Dubaï',
+    hall: 'German Healthcare Pavilion (Tradex) – stand S11.B70',
+    dates: '25 – 28 janvier 2027',
+    stand: { ...emptyProject().stand, w: W, d: D, hMax: 4.0, open: ['front', 'right'], floor: { type: 'moquette', color: '#3a3d42' } },
+    objects: objs,
+    views: [
+      { id: uid('v'), name: 'Vue ISO (projection)', mode: 'orbit', pos: [6.4, 4.6, 7.6], target: [2.9, 1.2, 1.1] },
+      { id: uid('v'), name: 'Face', mode: 'orbit', pos: [3.5, 2.2, 8.2], target: [3.5, 1.7, 1.2] },
+      { id: uid('v'), name: 'Visiteur – entrée', mode: 'visitor', pos: [3.6, 1.65, 4.2], yaw: -0.05, pitch: -0.05 },
+    ],
+  });
+}
+
 /** Stand vide avec cloisons sur les côtés fermés */
 export function basicProject(w, d, open = ['front'], extra = {}) {
   const p = emptyProject({ name: `Stand ${w} × ${d} m`, ...extra });
@@ -296,6 +370,7 @@ export function basicProject(w, d, open = ['front'], extra = {}) {
 
 export const TEMPLATES = [
   { id: 'medica', label: 'Medica 2026 – Spengler Group (8 × 3 m)', make: () => medicaProject() },
+  { id: 'tradex', label: 'WHX Dubai 2027 – Luxamed / Spengler (6,95 × 2,95 m)', make: () => tradexProject(), owner: 'anaelle' },
   { id: '3x3', label: 'Stand en ligne 3 × 3 m', make: () => basicProject(3, 3) },
   { id: '6x3', label: 'Stand en ligne 6 × 3 m', make: () => basicProject(6, 3) },
   { id: '8x3', label: 'Stand en ligne 8 × 3 m', make: () => basicProject(8, 3) },
