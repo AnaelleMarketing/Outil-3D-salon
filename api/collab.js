@@ -4,6 +4,8 @@
 //   shared/<pid>/project.json      projet partagé { id, owner, members, project, assets, rev, updated, updatedBy }
 //   shared/<pid>/assets/<aid>      fichiers (visuels, modèles) des projets partagés
 //   requests/<rid>.json            demandes { id, type: invite|join, from, to, projectId, projectName, status, created }
+//   users/<id>/inbox.json          index par personne { requests: [...], shared: [pid…] } : une seule lecture
+//                                  pour le suivi régulier (au lieu de lister tous les fichiers à chaque fois)
 import crypto from 'node:crypto';
 import { put, get, list, del } from '@vercel/blob';
 
@@ -56,6 +58,33 @@ async function listAll(prefix) {
 }
 
 const sharedPath = (pid) => `shared/${pid}/project.json`;
+const inboxPath = (u) => `users/${u}/inbox.json`;
+
+/** Index d'une personne ; reconstruit une seule fois à partir des anciens fichiers s'il n'existe pas encore */
+async function readInbox(u) {
+  const ix = await readJSON(inboxPath(u));
+  if (ix) return ix;
+  const reqBlobs = await listAll('requests/');
+  const reqs = (await Promise.all(reqBlobs.map((b) => readJSON(b.pathname)))).filter((r) => r && (r.to === u || r.from === u));
+  reqs.sort((x, y) => y.created - x.created);
+  const shBlobs = (await listAll('shared/')).filter((b) => b.pathname.endsWith('/project.json'));
+  const shared = (await Promise.all(shBlobs.map((b) => readJSON(b.pathname)))).filter((x) => x && x.members.includes(u)).map((x) => x.id);
+  const built = { requests: reqs.slice(0, 60), shared };
+  await writeJSON(inboxPath(u), built);
+  return built;
+}
+
+/** Met à jour l'index d'une personne (fn modifie l'objet) */
+async function editInbox(u, fn) {
+  const ix = await readInbox(u);
+  fn(ix);
+  ix.requests = (ix.requests || []).slice(0, 60);
+  ix.shared = [...new Set(ix.shared || [])];
+  await writeJSON(inboxPath(u), ix);
+}
+const upsertRequest = (ix, r) => {
+  ix.requests = [r, ...(ix.requests || []).filter((x) => x.id !== r.id)].sort((x, y) => y.created - x.created);
+};
 const metaOf = (s) => ({ id: s.id, name: s.project?.name, salon: s.project?.salon, owner: s.owner, members: s.members, rev: s.rev, updated: s.updated, updatedBy: s.updatedBy });
 
 export async function GET(request) {
@@ -73,6 +102,14 @@ export async function GET(request) {
       out.push({ user: u, name: display(u), projects: d?.projects || [] });
     }
     return json(out);
+  }
+
+  // suivi régulier : demandes + projets partagés en une seule lecture d'index
+  if (a === 'inbox') {
+    const ix = await readInbox(me);
+    const metas = (await Promise.all((ix.shared || []).map((id) => readJSON(sharedPath(id))))).filter((x) => x && x.members.includes(me));
+    if (metas.length !== (ix.shared || []).length) await editInbox(me, (i) => (i.shared = metas.map((x) => x.id)));
+    return json({ requests: ix.requests || [], shared: metas.map(metaOf) });
   }
 
   if (a === 'requests') {
@@ -166,6 +203,7 @@ export async function POST(request) {
       updatedBy: me,
     };
     await writeJSON(sharedPath(p.id), next);
+    if (!cur) await editInbox(me, (i) => i.shared.push(p.id));
     return json(metaOf(next));
   }
 
@@ -181,6 +219,7 @@ export async function POST(request) {
     const id = 'r' + crypto.randomBytes(6).toString('hex');
     const r = { id, type, from: me, to, projectId: body.projectId, projectName: String(body.projectName || '').slice(0, 120), message: String(body.message || '').slice(0, 300), status: 'pending', created: Date.now() };
     await writeJSON(`requests/${id}.json`, r);
+    await Promise.all([me, to].map((u) => editInbox(u, (i) => upsertRequest(i, r))));
     return json(r);
   }
 
@@ -199,6 +238,15 @@ export async function POST(request) {
     r.status = body.accept ? 'accepted' : 'declined';
     r.answered = Date.now();
     await writeJSON(`requests/${r.id}.json`, r);
+    const newcomer = r.type === 'invite' ? r.to : r.from;
+    await Promise.all(
+      [r.from, r.to].map((u) =>
+        editInbox(u, (i) => {
+          upsertRequest(i, r);
+          if (body.accept && u === newcomer) i.shared.push(r.projectId);
+        }),
+      ),
+    );
     return json(r);
   }
 
@@ -210,10 +258,12 @@ export async function POST(request) {
       // le propriétaire arrête le partage : suppression de la copie en ligne
       const blobs = await listAll(`shared/${body.id}/`);
       if (blobs.length) await del(blobs.map((b) => b.url));
+      await Promise.all(s.members.map((u) => editInbox(u, (i) => (i.shared = i.shared.filter((x) => x !== body.id)))));
       return json({ ok: true, stopped: true });
     }
     s.members = s.members.filter((m) => m !== me);
     await writeJSON(sharedPath(body.id), s);
+    await editInbox(me, (i) => (i.shared = i.shared.filter((x) => x !== body.id)));
     return json({ ok: true });
   }
 

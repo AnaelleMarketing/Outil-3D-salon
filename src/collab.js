@@ -5,6 +5,11 @@ import { ALL_IMAGE_KEYS } from './objects.js';
 
 const API = '/api/collab';
 const MAX_UPLOAD = 4.2e6;
+// suivi sobre : seulement quand l'onglet est affiché et que la personne est active
+const INBOX_EVERY = 60000; // demandes et projets partagés
+const REMOTE_EVERY = 20000; // modifications du projet partagé ouvert
+const IDLE_AFTER = 10 * 60000; // pause du suivi après 10 min sans activité
+const PUSH_DELAY = 4000; // regroupe les modifications rapprochées avant l'envoi
 
 export class Collab {
   constructor(app, me) {
@@ -53,8 +58,34 @@ export class Collab {
     if (!this.enabled) return;
     this.refresh();
     this.publishDirectory();
-    setInterval(() => this.refresh(), 30000);
-    setInterval(() => this.checkRemote(), 15000);
+    this.lastActive = Date.now();
+    this.lastInbox = Date.now();
+    this.lastRemote = Date.now();
+    const awake = () => {
+      const idle = Date.now() - this.lastActive > IDLE_AFTER;
+      this.lastActive = Date.now();
+      if (idle) this.tick(true); // retour après une pause : mise à jour immédiate
+    };
+    for (const ev of ['pointerdown', 'keydown', 'wheel']) window.addEventListener(ev, awake, { passive: true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') this.tick(true);
+    });
+    setInterval(() => this.tick(), 5000);
+  }
+
+  /** Planificateur : rien quand l'onglet est caché ou la personne inactive */
+  tick(force = false) {
+    if (document.visibilityState !== 'visible') return;
+    if (!force && Date.now() - this.lastActive > IDLE_AFTER) return;
+    const now = Date.now();
+    if (force || now - this.lastInbox >= INBOX_EVERY) {
+      this.lastInbox = now;
+      this.refresh();
+    }
+    if (force || now - this.lastRemote >= REMOTE_EVERY) {
+      this.lastRemote = now;
+      this.checkRemote();
+    }
   }
 
   get incoming() {
@@ -64,7 +95,7 @@ export class Collab {
   async refresh() {
     if (!this.enabled) return;
     try {
-      [this.requests, this.shared] = await Promise.all([this.api('requests'), this.api('shared')]);
+      ({ requests: this.requests, shared: this.shared } = await this.api('inbox'));
       this.app.ui.renderCollabBadge?.();
       // fenêtre d'alerte pour chaque nouvelle demande reçue (une seule fois par session)
       this.notified ||= new Set(JSON.parse(sessionStorage.getItem('stand3d:notified') || '[]'));
@@ -83,8 +114,22 @@ export class Collab {
   async publishDirectory() {
     if (!this.enabled) return;
     const own = this.app.projectsIndex.filter((m) => !m.sharedFrom);
+    // noms et salons seulement : on n'envoie rien si la liste n'a pas changé
+    const projects = own.map((m) => ({ id: m.id, name: m.name, salon: m.salon }));
+    const key = 'stand3d:dir:' + this.me.user;
+    const sig = JSON.stringify(projects);
+    try {
+      if (localStorage.getItem(key) === sig) return;
+    } catch (e) {
+      /* stockage indisponible : on publie */
+    }
     try {
       await this.api('directory', { method: 'POST', body: { projects: own.map((m) => ({ id: m.id, name: m.name, salon: m.salon, updated: m.updated })) } });
+      try {
+        localStorage.setItem(key, sig);
+      } catch (e) {
+        /* ignoré */
+      }
     } catch (e) {
       console.warn('directory', e);
     }
@@ -119,7 +164,8 @@ export class Collab {
   /** Envoie les fichiers du projet (visuels, modèles) pas encore en ligne */
   async uploadAssets(p) {
     const pid = p.id;
-    const done = this.uploaded.get(pid) || new Set();
+    // fichiers déjà en ligne : mémorisés avec le projet (pas de nouvel envoi après un rechargement)
+    const done = this.uploaded.get(pid) || new Set(p.shared?.uploaded || []);
     const metas = [];
     const skipped = [];
     for (const id of this.referencedAssets(p)) {
@@ -143,6 +189,7 @@ export class Collab {
       }
     }
     this.uploaded.set(pid, done);
+    if (p.shared) p.shared.uploaded = [...done];
     if (skipped.length) this.app.ui.toast(`Fichier(s) non partagé(s) (trop lourd ou erreur réseau, réessai à la prochaine modification) : ${skipped.join(', ')}`, 'warn', 6000);
     return metas;
   }
@@ -163,9 +210,10 @@ export class Collab {
   /** Met le projet en ligne (premier partage) : le projet d'abord, ses fichiers ensuite */
   async share(p) {
     const meta = await this.api('share', { method: 'POST', body: { project: this.clean(p), assets: this.assetMetas(p) } });
-    p.shared = { owner: meta.owner, rev: meta.rev, members: meta.members };
+    p.shared = { owner: meta.owner, rev: meta.rev, members: meta.members, uploaded: [] };
     await this.app.persistShared(p);
     await this.uploadAssets(p);
+    await this.app.persistShared(p);
     return meta;
   }
 
@@ -174,7 +222,7 @@ export class Collab {
     if (!this.enabled || !this.app.project.shared) return;
     clearTimeout(this.pushTimer);
     this.app.ui.setSyncState('pending');
-    this.pushTimer = setTimeout(() => this.push(), 1500);
+    this.pushTimer = setTimeout(() => this.push(), PUSH_DELAY);
   }
 
   async push() {
@@ -219,8 +267,9 @@ export class Collab {
         console.warn('asset', meta.id, e);
       }
     }
-    this.uploaded.set(pid, new Set((s.assets || []).map((m) => m.id)));
-    const p = { ...s.project, id: pid, shared: { owner: s.owner, rev: s.rev, members: s.members } };
+    const online = (s.assets || []).map((m) => m.id);
+    this.uploaded.set(pid, new Set(online));
+    const p = { ...s.project, id: pid, shared: { owner: s.owner, rev: s.rev, members: s.members, uploaded: online } };
     await set('project:' + pid, p);
     await this.app.indexProject(p, s.owner !== this.me.user ? s.owner : null);
     if (reload && this.app.project.id === pid) await this.app.replaceProject(p);
