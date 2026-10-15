@@ -80,7 +80,7 @@ const MODELS = [
   [/neotens/i, () => ({ model: 'neotens' })],
   [/autotensio wrist/i, (n) => ({ model: 'nomad', color: colorOf(n, '#ee6a5f') })],
   [/autotensio arm/i, (n) => ({ model: 'tensioElec', color: colorOf(n, '#3b4a8c') })],
-  [/mobi child cuff/i, () => ({ model: 'brassard', color: '#3b4a8c', long: 0.18, large: 0.08 })],
+  [/mobi child cuff/i, () => ({ model: 'manchon', color: '#3b4a8c', rayon: 0.16 / Math.PI / 2, long: 0.065 })], // XS 9-16 cm
   [/mobi/i, (n) => ({ model: 'mobi', color: colorOf(n, '#ee6a3c') })],
   [/dessillons/i, () => ({ model: 'dessillons', color: '#c8102e' })],
   [/vaquez|tensiom/i, (n) => ({ model: 'manopoire', color: colorOf(n, '#1d2f5a') })],
@@ -93,9 +93,8 @@ const MODELS = [
   [/little pump/i, () => ({ model: 'garrotSeul', scale: 0.75 })],
   [/base with casters/i, () => ({ model: 'socleRoulettes' })],
   [/manual (single-use|one-piece)/i, () => ({ model: 'garrotManuel' })],
-  [/autoclavable cuff/i, () => ({ model: 'brassard', color: '#8b7d6b', long: 0.4, large: 0.1, tubes: 1, tubeColor: '#2a6fc9' })],
-  [/one-piece cuff \(thigh\)/i, () => ({ model: 'brassard', color: '#2b2e33', long: 0.7, large: 0.09, tubes: 1 })],
-  [/one-piece cuff/i, () => ({ model: 'brassard', color: '#2b2e33', long: 0.32, large: 0.06, tubes: 1 })],
+  [/autoclavable cuff/i, (n, ref) => garrotCuff(ref, '#8b7d6b')],
+  [/one-piece cuff/i, (n, ref) => garrotCuff(ref, '#2b2e33')],
   [/tempo ear/i, () => ({ model: 'thermoOreille' })],
   [/tempo/i, (n) => ({ model: 'thermoCrayon', color: /blue/i.test(n) ? '#2a6fc9' : '#f2f3f5' })],
 ];
@@ -114,6 +113,15 @@ function manchon(n, color) {
   return { model: 'manchon', color, rayon: tour / 100 / Math.PI / 2, long: largeur / 100 };
 }
 
+/** Brassard de garrot DDM fermé, avec sa tubulure. Taille d'après le dernier chiffre de la référence
+ *  (1 nourrisson … 5 adulte L) et les tours de bras de la gamme DDM sur gsh-med.fr (petit adulte 17-25, adulte 23-33 cm). */
+function garrotCuff(ref, color) {
+  const cuissard = /^GC/i.test(ref);
+  const t = +(ref.match(/(\d)$/) || [])[1] || 4;
+  const [tour, largeur] = cuissard ? [55, 10] : { 1: [17, 4.5], 2: [22, 5.5], 3: [25, 7], 4: [33, 8], 5: [50, 10] }[t] || [33, 8];
+  return { model: 'manchon', color, rayon: tour / 100 / Math.PI / 2, long: largeur / 100, tubes: 1, tubeColor: '#2a6fc9' };
+}
+
 /** Marque, déduite du nom ou de la référence quand la liste ne la donne pas */
 function brandOf(p) {
   const b = p.brand || (/luxamed|luxascope|auris/i.test(p.name) || /^[A-Z][A-Z0-9]\.\d{3}\.\d/.test(p.ref) ? 'LUXAMED' : /spengler|tensiom|brassard|cuissard/i.test(p.name) ? 'SPENGLER' : '');
@@ -123,7 +131,7 @@ function brandOf(p) {
 export const MEDICA_PRODUCTS = MEDICA_RAW.map((p) => {
   const key = p.ref + ' ' + p.name;
   const rule = MODELS.find(([re]) => re.test(key));
-  return { ...p, brand: brandOf(p), gamme: GAMMES[p.sub] || p.sub || 'Divers', photo: p.file ? 'produits/' + p.file : null, shape3d: rule ? rule[1](p.name) : null };
+  return { ...p, brand: brandOf(p), gamme: GAMMES[p.sub] || p.sub || 'Divers', photo: p.file ? 'produits/' + p.file : null, shape3d: rule ? rule[1](p.name, p.ref) : null };
 }).sort((a, b) => ORDER.indexOf(a.gamme) - ORDER.indexOf(b.gamme) || a.name.localeCompare(b.name));
 
 /** Entrées du catalogue de l'outil (catégorie « Produits Medica 2026 ») */

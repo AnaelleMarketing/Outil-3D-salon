@@ -1085,13 +1085,8 @@ D.stationMurale = (o) => {
   return g;
 };
 
-/** Brassard plat (tensiomètre ou garrot), avec tubulure(s) */
-D.brassard = (o) => {
-  const g = cuff(o.color || '#5d6166', o.long || 0.25, o.large || 0.12, 0.012);
-  const tubes = o.tubes ?? 1;
-  for (let i = 0; i < tubes; i++) g.add(tube([[0.02 * i, 0.012, -(o.large || 0.12) * 0.3], [0.03 + 0.02 * i, 0.012, -(o.large || 0.12) * 0.7], [0.08 + 0.02 * i, 0.012, -(o.large || 0.12)]], 0.003, M(i ? '#e0393e' : o.tubeColor || '#2b2e33', 0.5)));
-  return g;
-};
+/** Ancien brassard « à plat » (projets existants) : un brassard se présente toujours fermé ; longueur = tour, largeur = hauteur */
+D.brassard = (o) => D.manchon({ color: o.color, rayon: (o.long || 0.25) / Math.PI / 2, long: o.large || 0.08, tubes: o.tubes ?? 1, tubeColor: o.tubeColor });
 
 /** Brassard enroulé (manchon) : brassards Soft Cuff / Clinic, cuissards */
 D.manchon = (o) => {
@@ -1100,7 +1095,15 @@ D.manchon = (o) => {
   const s = new THREE.Mesh(new THREE.CylinderGeometry(r, r, o.long || 0.14, 40, 1, true), new THREE.MeshPhysicalMaterial({ color: o.color || '#5d6166', roughness: 0.85, sheen: 0.5, side: THREE.DoubleSide }));
   s.position.y = (o.long || 0.14) / 2;
   s.scale.z = 0.8;
-  g.add(s, box(0.03, 0.04, 0.004, M('#e7eaee', 0.6), 0, (o.long || 0.14) * 0.6, r * 0.8 + 0.002));
+  // étiquette proportionnée au brassard
+  const lw = Math.min(0.03, r * 0.6);
+  const lh = Math.min(0.04, (o.long || 0.14) * 0.4);
+  g.add(s, box(lw, lh, 0.003, M('#e7eaee', 0.6), 0, (o.long || 0.14) * 0.6, r * 0.8 + 0.002));
+  // tubulure(s) de raccordement (brassards de garrot : bleue, rouge pour les doubles)
+  for (let i = 0; i < (o.tubes || 0); i++) {
+    const x = (i - ((o.tubes || 1) - 1) / 2) * 0.012;
+    g.add(tube([[x, (o.long || 0.14) * 0.5, r * 0.8], [x + 0.01, 0.02, r * 0.8 + 0.06], [x + 0.03, 0.005, r * 0.8 + 0.16]], 0.003, M(i ? '#e0393e' : o.tubeColor || '#2a6fc9', 0.5)));
+  }
   return g;
 };
 
@@ -1147,16 +1150,14 @@ D.socleRoulettes = (o) => {
   return g;
 };
 
-/** Garrot manuel : brassard + manomètre et poire */
+/** Garrot manuel : brassard fermé (adulte 23-33 cm, largeur 8 cm) + manomètre et poire posés devant */
 D.garrotManuel = (o) => {
-  const g = new THREE.Group();
-  const c = D.brassard({ color: o.color || '#3a3f47', long: 0.32, large: 0.08 });
-  g.add(c);
+  const g = D.manchon({ color: o.color || '#3a3f47', rayon: 0.33 / Math.PI / 2, long: 0.08, tubes: 1, tubeColor: '#2b2e33' });
   const head = gaugeHead(0.028, 0.02);
-  head.position.set(0.05, 0.03, 0.08);
+  head.position.set(0.05, 0.01, 0.12);
   const bulb = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), RUBBER());
   bulb.scale.set(0.024, 0.022, 0.042);
-  bulb.position.set(0.11, 0.022, 0.1);
+  bulb.position.set(0.11, 0.022, 0.15);
   g.add(head, bulb);
   return g;
 };
