@@ -49,6 +49,23 @@ function setTheme(t) {
   }
 }
 
+/** Favoris du catalogue (produits posés souvent), mémorisés sur ce navigateur */
+const favKey = (e) => e.cat + '|' + (e.d?.ref || e.label);
+function getFavs() {
+  try {
+    return JSON.parse(localStorage.getItem('stand3d:favoris') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+function setFavs(list) {
+  try {
+    localStorage.setItem('stand3d:favoris', JSON.stringify(list));
+  } catch (e) {
+    /* stockage indisponible */
+  }
+}
+
 /** Entrée de menu « Mode sombre » / « Mode clair », qui suit le mode en cours */
 function themeItem() {
   const btn = h('button', {});
@@ -507,10 +524,13 @@ export class UI {
   renderLibrary(body) {
     const a = this.app;
     const q = this.search.toLowerCase();
-    const match = (s) => !q || s.toLowerCase().includes(q);
+    // recherche par mot ou par référence, sans tenir compte des points ni des espaces (« A1416184 » trouve « A1.416.184 »)
+    const flat = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const qf = flat(q);
+    const match = (s) => !q || s.toLowerCase().includes(q) || (qf.length > 2 && flat(s).includes(qf));
     const search = h('input', {
       class: 'search',
-      placeholder: 'Rechercher (comptoir, tabouret, écran…)',
+      placeholder: 'Rechercher (comptoir, stéthoscope, réf. 507710…)',
       value: this.search,
       onInput: debounce((e) => {
         this.search = e.target.value;
@@ -561,6 +581,31 @@ export class UI {
         return c;
       }),
     );
+    // carte d'une entrée du catalogue, avec son étoile « favori »
+    const favs = getFavs();
+    const catCard = (e) => {
+      const sub = e.d.ref || e.d.brand ? [e.d.brand, e.d.ref ? 'réf. ' + e.d.ref : ''].filter(Boolean).join(' · ') : undefined;
+      const c = this.card(e.label, fromCatalog(e), sub, e.photo);
+      const key = favKey(e);
+      c.append(
+        h('button', {
+          class: 'fav' + (favs.includes(key) ? ' on' : ''),
+          title: favs.includes(key) ? 'Retirer des favoris' : 'Ajouter aux favoris',
+          onClick: (ev) => {
+            ev.stopPropagation();
+            setFavs(favs.includes(key) ? favs.filter((k) => k !== key) : [...favs, key]);
+            this.renderLeft();
+          },
+        }, favs.includes(key) ? '★' : '☆'),
+      );
+      return c;
+    };
+    // favoris en tête (produits posés souvent)
+    const favItems = CATALOG.filter((e) => favs.includes(favKey(e)) && match(e.label + ' ' + (e.kw || '')));
+    if (favItems.length && !F) {
+      const det = h('details', { open: true }, h('summary', {}, '★ Favoris', h('span', { class: 'count' }, favItems.length)), h('div', { class: 'cards' }, favItems.map(catCard)));
+      body.insertBefore(det, body.querySelector('details'));
+    }
     for (const cat of CATEGORIES) {
       const items = CATALOG.filter((e) => e.cat === cat && match(e.label + ' ' + (e.kw || '')));
       if (cat === 'Catalogue Spengler Medical' || cat === 'Produits Medica 2026') {
@@ -568,10 +613,10 @@ export class UI {
         const cards = [];
         for (const g of [...new Set(items.map((e) => e.gamme))]) {
           cards.push(h('div', { class: 'brand-sep' }, g));
-          for (const e of items.filter((x) => x.gamme === g)) cards.push(this.card(e.label, fromCatalog(e), [e.d.brand, e.d.ref ? 'réf. ' + e.d.ref : ''].filter(Boolean).join(' · '), e.photo));
+          for (const e of items.filter((x) => x.gamme === g)) cards.push(catCard(e));
         }
         if (items.length) section(cat, cards);
-      } else section(cat, items.map((e) => this.card(e.label, fromCatalog(e))));
+      } else section(cat, items.map(catCard));
     }
   }
 

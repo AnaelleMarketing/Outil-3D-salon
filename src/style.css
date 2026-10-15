@@ -183,6 +183,10 @@ details[open] > summary::before { transform: rotate(90deg); }
 .card .x { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%; border: 0; background: var(--glass); color: var(--ink2); display: none; line-height: 1; font-size: 14px; padding: 0; }
 .card .x.edit { right: 27px; font-size: 11px; }
 .card:hover .x { display: block; }
+/* étoile « favori » : visible au survol, toujours visible si le produit est en favori */
+.card .fav { position: absolute; top: 4px; left: 4px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--glass); color: var(--ink3); font-size: 14px; line-height: 1; padding: 0; opacity: 0; transition: opacity .12s; }
+.card:hover .fav, .card .fav.on { opacity: 1; }
+.card .fav.on { color: #e6a700; }
 .brand-sep { grid-column: 1 / -1; font-size: 11px; font-weight: 600; color: var(--accent); margin-top: 6px; }
 .video-ph { color: var(--ink2); font-size: 12px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
