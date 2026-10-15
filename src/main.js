@@ -13,6 +13,7 @@ import { setUser } from './store.js';
 
 const root = document.getElementById('app');
 const app = new App(root);
+if (import.meta.env.DEV) window.__app = app; // tests en local uniquement (absent du site en ligne)
 root.replaceChildren();
 
 /** Compte connecté (version en ligne) ; en local, pas de compte : mode personnel */

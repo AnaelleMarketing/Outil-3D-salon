@@ -202,6 +202,7 @@ export class UI {
       measure: 'Mesure : cliquez sur deux points · × sur une cote ou Suppr pour l’effacer · Échap pour quitter.',
       comment: 'Commentaire : cliquez sur un objet ou un point du stand.',
       calibrate: 'Calibrage : cliquez sur deux points du plan dont vous connaissez la distance.',
+      poseSur: 'Poser sur : cliquez sur le meuble (comptoir, socle, table…) · Échap pour annuler.',
     }[t];
     this.toolHint.textContent = msg || '';
     const n = this.app.project?.measures?.length || 0;
@@ -1062,8 +1063,91 @@ export class UI {
     if (focusKey) body.querySelector(`[data-key="${focusKey}"]`)?.focus();
   }
 
+  /** Menu du clic droit sur un élément (ou une sélection multiple) */
+  contextMenu(x, y) {
+    const a = this.app;
+    this.ctxEl?.remove();
+    const n = a.selection.length;
+    const close = () => {
+      this.ctxEl?.remove();
+      this.ctxEl = null;
+      window.removeEventListener('pointerdown', outside, true);
+      window.removeEventListener('keydown', esc, true);
+    };
+    const outside = (e) => !this.ctxEl?.contains(e.target) && close();
+    const esc = (e) => e.key === 'Escape' && close();
+    const item = (ic, label, fn, cls = '') => h('button', { class: cls, onClick: () => (close(), fn()) }, ic ? icon(ic) : h('span', { class: 'ic' }), label);
+    const menu = h(
+      'div',
+      { class: 'menu ctx open' },
+      h('div', { class: 'menu-head' }, h('b', {}, n > 1 ? `${n} éléments` : a.sel?.name || '')),
+      h('hr'),
+      item('copy', n > 1 ? 'Dupliquer la sélection' : 'Dupliquer', () => a.duplicate()),
+      item('rotL', 'Pivoter de −90°', () => a.rotate(-90)),
+      item('rotR', 'Pivoter de +90°', () => a.rotate(90)),
+      item(null, 'Poser sur un meuble…', () => a.setTool('poseSur')),
+      n > 1 ? h('hr') : null,
+      n > 1 ? item(null, 'Aligner sur une ligne', () => a.alignSelection()) : null,
+      n > 2 ? item(null, 'Espacer régulièrement', () => a.distributeSelection()) : null,
+      n > 1 ? item(null, 'Même orientation', () => a.sameRotation()) : null,
+      h('hr'),
+      item(null, 'Voir dans « Contenu »', () => this.showInContent()),
+      item('trash', n > 1 ? `Supprimer les ${n} éléments` : 'Supprimer', () => a.remove(), 'danger'),
+    );
+    document.body.append(menu);
+    // dans la fenêtre, près du curseur
+    const r = menu.getBoundingClientRect();
+    menu.style.left = Math.min(x, innerWidth - r.width - 8) + 'px';
+    menu.style.top = Math.min(y, innerHeight - r.height - 8) + 'px';
+    this.ctxEl = menu;
+    setTimeout(() => {
+      window.addEventListener('pointerdown', outside, true);
+      window.addEventListener('keydown', esc, true);
+    });
+  }
+
+  /** Ouvre l'onglet « Contenu » sur l'élément sélectionné */
+  showInContent() {
+    this.ltab = 'content';
+    if (this.panels.left) this.togglePanel('left');
+    this.renderLeft();
+    this.left.querySelector('.content-list li.on')?.scrollIntoView({ block: 'center' });
+  }
+
+  /** Panneau de droite pour une sélection multiple */
+  renderMultiProps(body) {
+    const a = this.app;
+    const ids = a.selection;
+    const n = ids.length;
+    const act = (label, fn, title, disabled = false) => h('button', { class: 'btn sm', title, disabled, onClick: fn }, label);
+    body.append(
+      h('div', { class: 'ptitle' }, h('small', {}, 'Sélection multiple'), h('b', { class: 'multi-n' }, `${n} éléments sélectionnés`)),
+      h('div', { class: 'actions' },
+        h('button', { class: 'ibtn', title: 'Pivoter −15° (Maj+R)', onClick: () => a.rotate(-15) }, icon('rotL')),
+        h('button', { class: 'ibtn', title: 'Pivoter +15° (R)', onClick: () => a.rotate(15) }, icon('rotR')),
+        h('button', { class: 'ibtn', title: 'Dupliquer la sélection (⌘D)', onClick: () => a.duplicate() }, icon('copy')),
+        h('button', { class: 'ibtn danger', title: 'Supprimer la sélection (Suppr)', onClick: () => a.remove() }, icon('trash')),
+      ),
+      h('h4', {}, 'Disposer'),
+      h('div', { class: 'multi-acts' },
+        act('Aligner sur une ligne', () => a.alignSelection(), 'Place les éléments sur la ligne qui joint les deux plus éloignés'),
+        act('Espacer régulièrement', () => a.distributeSelection(), 'Même écart entre les éléments, du premier au dernier (3 éléments minimum)', n < 3),
+        act('Même orientation', () => a.sameRotation(), 'Tous orientés comme l’élément principal (cadre bleu foncé)'),
+        act('Poser sur un meuble…', () => a.setTool('poseSur'), 'Puis cliquez sur le comptoir, le socle ou la table : les éléments sont répartis sur sa largeur'),
+      ),
+      h('h4', {}, 'Éléments'),
+      h('ul', { class: 'outliner content-list' }, ids.map((id) => {
+        const o = a.obj(id);
+        return h('li', { class: id === a.selected ? 'on' : '' }, h('span', { class: 'cname' }, o.name), h('button', { class: 'li-del', title: 'Retirer de la sélection', onClick: () => a.select(id, { toggle: true }) }, '×'));
+      })),
+      h('p', { class: 'muted' }, 'Maj + clic pour ajouter ou retirer un élément · Maj + glisser dans le vide pour sélectionner une zone · glissez un des éléments pour déplacer tout le groupe.'),
+      act('Tout désélectionner', () => a.select(null)),
+    );
+  }
+
   renderProps(body) {
     const a = this.app;
+    if (a.selection.length > 1) return this.renderMultiProps(body);
     const o = a.sel;
     if (!o) {
       const p = a.project;

@@ -480,6 +480,16 @@ body.hide-left .left, body.hide-right .right { display: none; }
 .menu-head b { display: block; }
 .menu-head small { color: var(--ink3); font-size: 11.5px; }
 .menu button, .menu .menu-link { display: flex; align-items: center; gap: 8px; }
+/* menu du clic droit */
+.menu.ctx { position: fixed; right: auto; z-index: 450; min-width: 230px; }
+.menu button.danger { color: var(--err); }
+.menu button .ic:empty { width: 16px; }
+/* rectangle de sélection (Maj + glisser) */
+.select-rect { position: absolute; z-index: 5; border: 1.5px solid #2fa8ff; background: rgba(47, 168, 255, 0.12); border-radius: 3px; pointer-events: none; }
+/* panneau de sélection multiple */
+.multi-n { display: block; font-size: 15px; margin-top: 2px; }
+.multi-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.multi-acts .btn { height: auto; min-height: 32px; padding: 6px 8px; white-space: normal; line-height: 1.25; text-align: center; }
 .menu-link { width: 100%; padding: 8px 10px; border-radius: 6px; text-decoration: none; color: var(--ink); font-size: 13px; }
 .menu-link:hover { background: var(--bg); }
 .menu-link.danger { color: var(--err); }

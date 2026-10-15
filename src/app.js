@@ -18,7 +18,8 @@ export class App {
     this.root = root;
     this.cache = new Map(); // id -> { key, group }
     this.selected = null;
-    this.tool = null; // 'measure' | 'comment' | 'calibrate'
+    this.tool = null; // 'measure' | 'comment' | 'calibrate' | 'poseSur'
+    this.multi = new Set(); // sélection multiple : éléments sélectionnés en plus de this.selected
     this.toolPts = [];
     this.history = [];
     this.hIndex = -1;
@@ -702,9 +703,15 @@ export class App {
     if (s && this.cache.has(s.id)) {
       const b = boxOf(s);
       v.helpers.add(new THREE.Box3Helper(b.clone().expandByScalar(0.006), '#2fa8ff'));
-      const l = v.label(`${this.fmtLen(b.max.x - b.min.x)} × ${this.fmtLen(b.max.z - b.min.z)} × h ${this.fmtLen(b.max.y - b.min.y)}`, 'sel-label');
+      const n = this.selection.length;
+      const l = v.label(n > 1 ? `${n} éléments sélectionnés` : `${this.fmtLen(b.max.x - b.min.x)} × ${this.fmtLen(b.max.z - b.min.z)} × h ${this.fmtLen(b.max.y - b.min.y)}`, 'sel-label');
       l.position.set((b.min.x + b.max.x) / 2, b.max.y + 0.08, (b.min.z + b.max.z) / 2);
       v.helpers.add(l);
+    }
+    // autres éléments de la sélection multiple
+    for (const id of this.multi) {
+      const o = this.obj(id);
+      if (o && this.cache.has(id)) v.helpers.add(new THREE.Box3Helper(boxOf(o).expandByScalar(0.006), '#7cc8ff'));
     }
     // éléments suspendus : contour en tirets en vue de dessus
     if (v.mode === 'plan') {
@@ -770,19 +777,47 @@ export class App {
     const v = this.viewer;
     const s = this.sel;
     const e = s && this.cache.get(s.id);
-    if (e && !this.readOnly && v.mode !== 'visitor' && !this.tool && !this.placing) {
+    // poignée de rotation seulement pour un élément seul
+    if (e && !this.multi.size && !this.readOnly && v.mode !== 'visitor' && !this.tool && !this.placing) {
       if (v.tc.object !== e.group) v.tc.attach(e.group);
     } else v.tc.detach();
   }
 
   /* ---------------- édition ---------------- */
 
-  select(id) {
-    this.selected = id;
+  select(id, { toggle = false, keepMulti = false } = {}) {
+    if (toggle && id) {
+      // Maj + clic : ajoute l'élément à la sélection, ou l'en retire
+      if (this.selection.includes(id)) {
+        if (id === this.selected) {
+          this.selected = [...this.multi][0] || null;
+          if (this.selected) this.multi.delete(this.selected);
+        } else this.multi.delete(id);
+      } else {
+        if (this.selected) this.multi.add(this.selected);
+        this.selected = id;
+      }
+    } else {
+      if (!keepMulti) this.multi.clear();
+      this.multi.delete(id);
+      this.selected = id;
+    }
     this.attachGizmo();
     this.updateHelpers();
     this.ui.refresh();
-    if (id) this.ui.showTab('props');
+    if (this.selected) this.ui.showTab('props');
+  }
+
+  /** Éléments sélectionnés (le principal en premier) */
+  get selection() {
+    return [this.selected, ...this.multi].filter((id, i, arr) => id && arr.indexOf(id) === i && this.obj(id));
+  }
+
+  /** Sélectionne une liste d'éléments (rectangle de sélection, « Contenu »…) */
+  selectMany(ids) {
+    const list = ids.filter((id) => this.obj(id));
+    this.multi = new Set(list.slice(1));
+    this.select(list[0] || null, { keepMulti: true });
   }
 
   snap(v) {
@@ -1219,43 +1254,136 @@ export class App {
     }
   }
 
-  remove(id = this.selected) {
-    if (!id || this.readOnly) return;
-    this.project.objects = this.project.objects.filter((o) => o.id !== id);
-    for (const c of this.project.comments) if (c.objId === id) c.objId = null;
-    if (this.selected === id) this.selected = null;
-    this.commit('Supprimer');
+  /** Sans identifiant : agit sur toute la sélection */
+  remove(id) {
+    const ids = id ? [id] : this.selection;
+    if (!ids.length || this.readOnly) return;
+    this.project.objects = this.project.objects.filter((o) => !ids.includes(o.id));
+    for (const c of this.project.comments) if (ids.includes(c.objId)) c.objId = null;
+    if (ids.includes(this.selected)) this.selected = null;
+    for (const i of ids) this.multi.delete(i);
+    this.commit(ids.length > 1 ? `Supprimer ${ids.length} éléments` : 'Supprimer');
   }
 
-  duplicate(id = this.selected) {
-    const o = this.obj(id);
-    if (!o || this.readOnly) return;
-    const c = JSON.parse(JSON.stringify(o));
-    c.id = uid('o');
-    const b = this.cache.get(o.id)?.group.userData.box;
+  duplicate(id) {
+    const ids = id ? [id] : this.selection;
+    if (!ids.length || this.readOnly) return;
+    // décalage : largeur de l'élément principal, dans son axe (le groupe garde sa disposition)
+    const o0 = this.obj(ids[0]);
+    const b = this.cache.get(o0.id)?.group.userData.box;
     const dx = b ? Math.max(0.2, b.max.x - b.min.x + 0.1) : 0.5;
-    c.x = this.snap(o.x + dx * Math.cos(rad(o.rot || 0)));
-    c.z = this.snap(o.z - dx * Math.sin(rad(o.rot || 0)));
-    this.project.objects.push(c);
-    this.selected = c.id;
+    const ox = dx * Math.cos(rad(o0.rot || 0));
+    const oz = -dx * Math.sin(rad(o0.rot || 0));
+    const copies = ids.map((i) => {
+      const c = JSON.parse(JSON.stringify(this.obj(i)));
+      c.id = uid('o');
+      c.x = this.snap(c.x + ox);
+      c.z = this.snap(c.z + oz);
+      this.project.objects.push(c);
+      return c.id;
+    });
+    this.selected = copies[0];
+    this.multi = new Set(copies.slice(1));
     this.commit('Dupliquer');
   }
 
-  rotate(delta, id = this.selected) {
-    const o = this.obj(id);
-    if (!o || this.readOnly) return;
-    o.rot = norm180((o.rot || 0) + delta);
+  rotate(delta, id) {
+    const ids = id ? [id] : this.selection;
+    if (!ids.length || this.readOnly) return;
+    for (const i of ids) {
+      const o = this.obj(i);
+      o.rot = norm180((o.rot || 0) + delta);
+    }
     this.commit('Pivoter');
   }
 
   nudge(dx, dz) {
-    const o = this.sel;
-    if (!o || this.readOnly) return;
+    const ids = this.selection;
+    if (!ids.length || this.readOnly) return;
     const g = this.stand.grid || 0.1;
-    o.x = Math.round((o.x + dx * g) * 1000) / 1000;
-    o.z = Math.round((o.z + dz * g) * 1000) / 1000;
-    if (isStackable(o)) o.y = this.supportTop(o.x, o.z, o.id);
+    for (const i of ids) {
+      const o = this.obj(i);
+      o.x = Math.round((o.x + dx * g) * 1000) / 1000;
+      o.z = Math.round((o.z + dz * g) * 1000) / 1000;
+      if (isStackable(o)) o.y = this.supportTop(o.x, o.z, o.id);
+    }
     this.commit('Déplacer');
+  }
+
+  /* ----- sélection multiple : aligner, répartir, poser sur un meuble ----- */
+
+  /** Axe de la rangée : de l'élément le plus à une extrémité à celui de l'autre */
+  selectionAxis() {
+    const os = this.selection.map((i) => this.obj(i));
+    let best = [os[0], os[1]];
+    let dmax = -1;
+    for (const p of os) for (const q of os) {
+      const d = Math.hypot(q.x - p.x, q.z - p.z);
+      if (d > dmax) [dmax, best] = [d, [p, q]];
+    }
+    const [A, B] = best;
+    const L = Math.max(dmax, 1e-6);
+    return { os, A: { x: A.x, z: A.z }, ux: (B.x - A.x) / L, uz: (B.z - A.z) / L, L };
+  }
+
+  /** Aligne la sélection sur la ligne qui joint ses deux éléments extrêmes */
+  alignSelection() {
+    if (this.selection.length < 2 || this.readOnly) return;
+    const { os, A, ux, uz } = this.selectionAxis();
+    for (const o of os) {
+      const t = (o.x - A.x) * ux + (o.z - A.z) * uz;
+      o.x = Math.round((A.x + ux * t) * 1000) / 1000;
+      o.z = Math.round((A.z + uz * t) * 1000) / 1000;
+      if (isStackable(o)) o.y = this.supportTop(o.x, o.z, o.id);
+    }
+    this.commit('Aligner');
+  }
+
+  /** Espace régulièrement la sélection entre ses deux éléments extrêmes */
+  distributeSelection() {
+    if (this.selection.length < 3 || this.readOnly) return;
+    const { os, A, ux, uz, L } = this.selectionAxis();
+    const sorted = os.map((o) => ({ o, t: (o.x - A.x) * ux + (o.z - A.z) * uz })).sort((p, q) => p.t - q.t);
+    sorted.forEach(({ o, t }, i) => {
+      const target = (L * i) / (sorted.length - 1);
+      o.x = Math.round((o.x + ux * (target - t)) * 1000) / 1000;
+      o.z = Math.round((o.z + uz * (target - t)) * 1000) / 1000;
+      if (isStackable(o)) o.y = this.supportTop(o.x, o.z, o.id);
+    });
+    this.commit('Répartir');
+  }
+
+  /** Donne à toute la sélection l'orientation de l'élément principal */
+  sameRotation() {
+    const s = this.sel;
+    if (!s || this.selection.length < 2 || this.readOnly) return;
+    for (const i of this.selection) this.obj(i).rot = s.rot || 0;
+    this.commit('Même orientation');
+  }
+
+  /** Pose la sélection sur un meuble : répartie sur sa largeur, face à l'avant du meuble */
+  placeOn(targetId) {
+    const t = this.obj(targetId);
+    const ids = this.selection.filter((i) => i !== targetId);
+    const e = this.cache.get(targetId);
+    if (!t || !ids.length || !e || this.readOnly) return;
+    const b = e.group.userData.box; // boîte locale du meuble
+    const w = Math.max(0.05, (b.max.x - b.min.x) * 0.9);
+    const cx = (b.min.x + b.max.x) / 2;
+    const cz = (b.min.z + b.max.z) / 2;
+    const r = rad(t.rot || 0);
+    const n = ids.length;
+    ids.forEach((id, i) => {
+      const o = this.obj(id);
+      const lx = cx + (n > 1 ? ((i + 0.5) / n - 0.5) * w : 0);
+      // repère local du meuble → stand (même convention que la rotation des groupes)
+      o.x = Math.round((t.x + lx * Math.cos(r) + cz * Math.sin(r)) * 1000) / 1000;
+      o.z = Math.round((t.z - lx * Math.sin(r) + cz * Math.cos(r)) * 1000) / 1000;
+      o.rot = t.rot || 0;
+      o.y = isStackable(o) ? this.supportTop(o.x, o.z, o.id) : o.y;
+    });
+    this.commit('Poser sur ' + t.name);
+    this.ui.toast(`${n} élément(s) posé(s) sur « ${t.name} ».`);
   }
 
   setStand(patch) {
@@ -1437,18 +1565,46 @@ export class App {
     const id = hit && this.objIdOf(hit.object);
     if (id) {
       const o = this.obj(id);
-      if (this.selected !== id) this.select(id);
+      const inSel = this.selection.includes(id);
+      // clic sur un élément hors sélection : il devient la sélection (Maj + clic : ajouté au relâchement)
+      if (!inSel && !e.shiftKey) this.select(id);
+      // élément d'une sélection multiple : tout le groupe suit
+      const group = inSel && this.multi.size ? this.selection.filter((i) => i !== id).map((i) => ({ o: this.obj(i), ox: this.obj(i).x, oz: this.obj(i).z })) : [];
       this.drag = {
         id,
         plane: new THREE.Plane(new THREE.Vector3(0, 1, 0), -hit.point.y),
         start: hit.point.clone(),
         ox: o.x,
         oz: o.z,
+        group,
         started: false,
       };
       v.orbit.enabled = false;
       v.planCtl.enabled = false;
+    } else if (e.shiftKey) {
+      // Maj + glisser dans le vide : rectangle de sélection
+      this.rect = { x0: e.clientX, y0: e.clientY, el: h('div', { class: 'select-rect' }) };
+      this.ui.viewport.append(this.rect.el);
+      v.orbit.enabled = false;
+      v.planCtl.enabled = false;
     }
+  }
+
+  /** Éléments dont le centre, vu à l'écran, est dans le rectangle de sélection */
+  idsInRect(x0, y0, x1, y1) {
+    const v = this.viewer;
+    const r = v.renderer.domElement.getBoundingClientRect();
+    const [ax, bx, ay, by] = [Math.min(x0, x1), Math.max(x0, x1), Math.min(y0, y1), Math.max(y0, y1)];
+    const ids = [];
+    for (const o of this.project.objects) {
+      const e = this.cache.get(o.id);
+      if (!e || !e.group.visible) continue;
+      const c = e.group.userData.box.clone().applyMatrix4(e.group.matrixWorld).getCenter(new THREE.Vector3()).project(v.camera);
+      const sx = r.left + ((c.x + 1) / 2) * r.width;
+      const sy = r.top + ((1 - c.y) / 2) * r.height;
+      if (c.z < 1 && sx >= ax && sx <= bx && sy >= ay && sy <= by) ids.push(o.id);
+    }
+    return ids;
   }
 
   onMove(e) {
@@ -1489,6 +1645,12 @@ export class App {
       }
       return;
     }
+    if (this.rect) {
+      const R = this.rect;
+      const vr = this.ui.viewport.getBoundingClientRect();
+      Object.assign(R.el.style, { left: Math.min(R.x0, e.clientX) - vr.left + 'px', top: Math.min(R.y0, e.clientY) - vr.top + 'px', width: Math.abs(e.clientX - R.x0) + 'px', height: Math.abs(e.clientY - R.y0) + 'px' });
+      return;
+    }
     const d = this.drag;
     if (!d || !this.down.moved) return;
     const p = new THREE.Vector3();
@@ -1497,6 +1659,18 @@ export class App {
     if (!o) return;
     d.started = true;
     this.applyPlacement(o, d.ox + p.x - d.start.x, d.oz + p.z - d.start.z);
+    // le reste du groupe suit du même déplacement (après aimantation de l'élément tiré)
+    for (const m of d.group) {
+      m.o.x = Math.round((m.ox + o.x - d.ox) * 1000) / 1000;
+      m.o.z = Math.round((m.oz + o.z - d.oz) * 1000) / 1000;
+      if (isStackable(m.o)) m.o.y = this.supportTop(m.o.x, m.o.z, m.o.id);
+      const g = this.cache.get(m.o.id)?.group;
+      if (g) {
+        g.position.set(m.o.x, m.o.y || 0, m.o.z);
+        g.updateMatrixWorld(true);
+      }
+    }
+    if (d.group.length) this.updateHelpers();
     v.invalidate();
   }
 
@@ -1522,6 +1696,20 @@ export class App {
       }
       return;
     }
+    if (this.rect) {
+      const R = this.rect;
+      this.rect = null;
+      R.el.remove();
+      v.orbit.enabled = v.mode === 'orbit';
+      v.planCtl.enabled = v.mode === 'plan';
+      if (down.moved) {
+        const ids = this.idsInRect(R.x0, R.y0, e.clientX, e.clientY);
+        // ajoutés à la sélection en cours (Maj est maintenu)
+        this.selectMany([...new Set([...ids, ...this.selection])]);
+        if (ids.length) this.ui.toast(`${this.selection.length} élément(s) sélectionné(s).`);
+      }
+      return;
+    }
     if (this.drag) {
       const d = this.drag;
       this.drag = null;
@@ -1530,12 +1718,31 @@ export class App {
       if (d.started) {
         this.guides = [];
         this.gaps = [];
-        this.commit('Déplacer');
+        this.commit(d.group.length ? `Déplacer ${d.group.length + 1} éléments` : 'Déplacer');
         return;
       }
     }
+    // clic droit sur un élément : menu d'actions
+    if (down.button === 2 && !down.moved && e.target === v.renderer.domElement && v.mode !== 'visitor' && !this.readOnly && !this.tool) {
+      const hit = this.hits(e, { ground: false })[0];
+      const id = hit ? this.objIdOf(hit.object) : null;
+      if (id) {
+        if (!this.selection.includes(id)) this.select(id);
+        this.ui.contextMenu(e.clientX, e.clientY);
+      }
+      return;
+    }
     if (down.moved || down.button !== 0 || e.target !== v.renderer.domElement) return;
     if (v.tc.dragging) return;
+    // « Poser sur… » : clic sur le meuble d'arrivée
+    if (this.tool === 'poseSur') {
+      const hit = this.hits(e, { ground: false })[0];
+      const id = hit ? this.objIdOf(hit.object) : null;
+      this.setTool(null);
+      if (id && !this.selection.includes(id)) this.placeOn(id);
+      else this.ui.toast('Cliquez sur un meuble (comptoir, socle, table…) pour y poser la sélection.', 'warn');
+      return;
+    }
     // clic simple
     if (this.tool === 'measure' || this.tool === 'calibrate') {
       const hit = this.hits(e)[0];
@@ -1564,7 +1771,8 @@ export class App {
     if (v.tc.axis) return;
     const hit = this.hits(e, { ground: false })[0];
     const id = hit ? this.objIdOf(hit.object) : null;
-    if (id !== this.selected) this.select(id);
+    if (e.shiftKey && id) this.select(id, { toggle: true }); // Maj + clic : ajoute / retire de la sélection
+    else if (id !== this.selected || this.multi.size) this.select(id);
   }
 
   async finishCalibration(a, b) {
