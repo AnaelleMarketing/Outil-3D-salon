@@ -1,4 +1,11 @@
 import './style.css';
+
+// mode clair / sombre choisi dans le menu du compte (mémorisé sur ce navigateur)
+try {
+  if (localStorage.getItem('stand3d:theme') === 'dark') document.documentElement.dataset.theme = 'dark';
+} catch (e) {
+  /* stockage indisponible */
+}
 import { App } from './app.js';
 import { showSplash } from './splash.js';
 
