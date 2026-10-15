@@ -65,8 +65,9 @@ button { cursor: pointer; }
 .left, .right { width: 300px; flex: none; background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
 .left { border-right: 1px solid var(--line); }
 .right { border-left: 1px solid var(--line); width: 320px; }
-.tabs { display: flex; border-bottom: 1px solid var(--line); flex: none; }
-.tabs button { flex: 1; border: 0; background: none; padding: 11px 4px 9px; color: var(--ink2); border-bottom: 2px solid transparent; font-size: 12.5px; white-space: nowrap; }
+/* onglets : passent sur deux lignes si le panneau est trop étroit (aucun onglet coupé) */
+.tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--line); flex: none; }
+.tabs button { flex: 1 0 auto; border: 0; background: none; padding: 11px 4px 9px; color: var(--ink2); border-bottom: 2px solid transparent; font-size: 12.5px; white-space: nowrap; }
 .tabs button.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
 .scroll { flex: 1; overflow: auto; padding: 12px; }
 .viewport { flex: 1; position: relative; min-width: 0; overflow: hidden; background: #2c3e52; }
