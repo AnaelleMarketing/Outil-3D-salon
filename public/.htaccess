@@ -3,11 +3,24 @@
 Options -Indexes
 DirectoryIndex gate.php
 
+# Hors réseau Spengler (accès restreint par l'IT) : page « accès réservé » à la place du 403 d'Apache.
+# Elle et le logo restent accessibles à tous ; elle ne contient pas le code de l'outil.
+ErrorDocument 403 /acces/index.html
+<If "%{REQUEST_URI} =~ m#^/(acces/|brand/(logo-s|favicon)\.png$)#">
+  Require all granted
+</If>
+
 RewriteEngine On
 # toujours en https (les codes ne doivent jamais passer en clair)
 RewriteCond %{HTTPS} off
 RewriteCond %{HTTP:X-Forwarded-Proto} !https
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 RewriteRule ^(data|lib)(/|$) - [F,L]
-RewriteRule ^(brand/.+|mentions-legales\.html|gate\.php|api/collab\.php)$ - [L]
+RewriteRule ^(acces/.*|brand/.+|mentions-legales\.html|gate\.php|api/collab\.php)$ - [L]
 RewriteRule ^(.*)$ gate.php?_gate=$1 [B,L,QSA]
+
+# Restriction réseau posée par l'IT Spengler (Sébastien Miette, 15/10/2026) : accès réservé au réseau / VPN Spengler.
+# À garder en fin de fichier, ne pas retirer (ce fichier remplace celui du serveur à chaque mise en ligne).
+<RequireAny>
+Require ip 185.61.186.233
+</RequireAny>

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5180",
-    "build": "vite build",
+    "build": "vite build && vite build -c vite.acces.config.js",
     "preview": "vite preview --host 127.0.0.1 --port 5180"
   },
   "dependencies": {

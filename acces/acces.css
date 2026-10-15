@@ -1,0 +1,29 @@
+/* Page « accès réservé » : reprend le style de la page d'accueil de l'outil (src/style.css, « page d'accueil ») */
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #0e0f26; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+.splash { position: fixed; inset: 0; overflow: hidden; color: #fff;
+  background: radial-gradient(ellipse at 75% 45%, #2b5fa8 0%, #1b2f63 40%, #141634 75%, #0e0f26 100%); }
+.splash::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgba(14,15,38,.88) 0%, rgba(14,15,38,.35) 45%, transparent 70%); }
+.splash-3d { position: absolute; inset: 0; }
+.splash-3d canvas { display: block; }
+.splash-content { position: absolute; z-index: 2; left: 8vw; top: 50%; transform: translateY(-50%); max-width: 540px; padding-right: 16px; }
+.splash-brand { display: inline-flex; flex-direction: column; align-items: center; margin-bottom: 34px; font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif; }
+.splash-brand img { width: 64px; height: auto; margin-bottom: 8px; }
+.splash-brand .b1 { font-size: 44px; font-weight: 400; letter-spacing: .02em; line-height: 1; color: #d9dbdd; }
+.splash-brand .b2 { font-size: 17px; font-weight: 400; letter-spacing: .42em; margin-top: 6px; padding-left: .42em; color: #b9bcc0; }
+.splash h1 { font-size: clamp(34px, 5vw, 56px); line-height: 1.05; margin: 0 0 16px; font-weight: 700; letter-spacing: -.01em; }
+.splash p { font-size: 17px; line-height: 1.5; color: #d3e2e7; margin: 0 0 32px; }
+.splash-btn { display: inline-flex; align-items: center; gap: 12px; height: 54px; padding: 0 30px; border-radius: 28px; text-decoration: none;
+  background: #fff; color: #1b2f63; font-size: 17px; font-weight: 700; box-shadow: 0 10px 30px rgba(0,0,0,.3); transition: transform .15s, box-shadow .15s; }
+.splash-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(0,0,0,.38); }
+.splash-btn .arrow { font-size: 20px; transition: transform .15s; }
+.splash-btn:hover .arrow { transform: translateX(4px); }
+.splash-feats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 36px; }
+.splash-feats span { font-size: 12.5px; padding: 5px 12px; border-radius: 14px; border: 1px solid rgba(82,227,232,.4); color: #d3e2e7; }
+.splash-foot { position: absolute; z-index: 2; left: 8vw; bottom: 24px; font-size: 12px; letter-spacing: .08em; color: rgba(211,226,231,.65); }
+@media (max-width: 900px) {
+  .splash::after { background: rgba(14,15,38,.6); }
+  .splash-content { left: 16px; right: 16px; }
+  .splash-foot { left: 16px; right: 16px; }
+}
