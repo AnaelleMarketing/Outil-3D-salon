@@ -1164,6 +1164,9 @@ B.model = (o) => {
   return g;
 };
 
+/** Matière de la zone de prise : jamais dessinée, mais touchée par le rayon de la souris */
+const PICK_MAT = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false });
+
 /** Construit le groupe Three.js d'un objet + métadonnées (bbox locale, lumières, résolution) */
 export function buildObject(o) {
   const ud = { lights: [], dpi: {} };
@@ -1185,6 +1188,17 @@ export function buildObject(o) {
     }
   });
   if (box.isEmpty()) box.set(new THREE.Vector3(-0.05, 0, -0.05), new THREE.Vector3(0.05, 0.1, 0.05));
+  // petits produits (stéthoscope à plat, lampe stylo…) : zone de prise invisible sur tout leur encombrement,
+  // d'au moins 6 cm de côté, pour pouvoir les sélectionner et les déplacer à la souris
+  if (TYPES[o.type]?.stack) {
+    const s = box.getSize(new THREE.Vector3());
+    const c = box.getCenter(new THREE.Vector3());
+    const pick = new THREE.Mesh(new THREE.BoxGeometry(Math.max(s.x, 0.06), Math.max(s.y, 0.03), Math.max(s.z, 0.06)), PICK_MAT);
+    pick.position.set(c.x, box.min.y + Math.max(s.y, 0.03) / 2, c.z);
+    pick.userData.pickHelper = true;
+    g.add(pick);
+    g.updateMatrixWorld(true);
+  }
   let parts = null;
   if (TYPES[o.type]?.hollow) {
     parts = [];

@@ -57,6 +57,9 @@ export async function exportGLB(app) {
     const e = app.cache.get(o.id);
     if (e && e.group.visible) {
       const c = e.group.clone(true);
+      const helpers = [];
+      c.traverse((x) => x.userData.pickHelper && helpers.push(x));
+      helpers.forEach((x) => x.removeFromParent());
       c.name = o.name;
       scene.add(c);
     }
