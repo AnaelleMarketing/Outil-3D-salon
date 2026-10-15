@@ -726,11 +726,18 @@ export class App {
       v.helpers.add(dimLine(v, new THREE.Vector3(g.a.x, 0.04, g.a.z), new THREE.Vector3(g.b.x, 0.04, g.b.z), this.fmtLen(g.len), false, '#30d158'));
     }
     // mesures
-    for (const m of this.project.measures || []) {
+    (this.project.measures || []).forEach((m, i) => {
       const a = new THREE.Vector3(...m.a);
       const b = new THREE.Vector3(...m.b);
-      v.helpers.add(dimLine(v, a, b, this.fmtLen(a.distanceTo(b)), false, '#ffd60a'));
-    }
+      const d = dimLine(v, a, b, this.fmtLen(a.distanceTo(b)), false, '#ffd60a');
+      // croix de suppression sur l'étiquette de la mesure
+      const lbl = d.children.find((c) => c.isCSS2DObject);
+      if (lbl && !this.readOnly) {
+        const x = h('button', { class: 'measure-del', title: 'Supprimer cette mesure', onPointerdown: (e) => e.stopPropagation(), onClick: (e) => (e.stopPropagation(), this.removeMeasure(i)) }, '×');
+        lbl.element.append(x);
+      }
+      v.helpers.add(d);
+    });
     for (const p of this.toolPts) {
       const dot = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 8), new THREE.MeshBasicMaterial({ color: '#ffd60a', depthTest: false }));
       dot.position.copy(p);
@@ -1259,6 +1266,16 @@ export class App {
     this.ui.refreshTools();
   }
 
+  /** Supprime une mesure (index) ou toutes les mesures (null) */
+  removeMeasure(i = null) {
+    if (this.readOnly || !this.project.measures?.length) return;
+    if (i === null) this.project.measures = [];
+    else this.project.measures.splice(i, 1);
+    this.commit(i === null ? 'Effacer les mesures' : 'Supprimer la mesure');
+    this.updateHelpers();
+    this.ui.refreshTools();
+  }
+
   /* ---------------- unités ---------------- */
 
   fmtLen(m) {
@@ -1525,6 +1542,7 @@ export class App {
         if (this.tool === 'measure') {
           this.project.measures.push({ a: a.toArray(), b: b.toArray() });
           this.commit('Mesure');
+          this.ui.refreshTools();
         } else this.finishCalibration(a, b);
       }
       this.updateHelpers();
@@ -1586,7 +1604,10 @@ export class App {
       this.duplicate();
     } else if (k === 'delete' || k === 'backspace') {
       if (this.placing) this.cancelPlacing();
-      else if (this.selected) {
+      else if (this.tool === 'measure' && this.project.measures?.length) {
+        e.preventDefault();
+        this.removeMeasure(this.project.measures.length - 1); // outil Mesurer : efface la dernière mesure
+      } else if (this.selected) {
         e.preventDefault();
         this.remove();
       }

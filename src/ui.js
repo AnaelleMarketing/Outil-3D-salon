@@ -130,7 +130,7 @@ export class UI {
     this.renderTopState();
     this.renderRight();
     this.renderHud();
-    if (this.ltab === 'stand' || this.ltab === 'layers' || this.ltab === 'style') this.renderLeft();
+    if (this.ltab === 'stand' || this.ltab === 'layers' || this.ltab === 'content' || this.ltab === 'style') this.renderLeft();
   }
   refreshLeft() {
     this.renderLeft();
@@ -140,11 +140,13 @@ export class UI {
     const t = this.app.placing ? 'placing' : this.app.tool;
     const msg = {
       placing: 'Déplacez la souris puis cliquez pour poser · R pour pivoter · Échap pour annuler · Maj : sans aimantation',
-      measure: 'Mesure : cliquez sur deux points. Échap pour quitter.',
+      measure: 'Mesure : cliquez sur deux points · × sur une cote ou Suppr pour l’effacer · Échap pour quitter.',
       comment: 'Commentaire : cliquez sur un objet ou un point du stand.',
       calibrate: 'Calibrage : cliquez sur deux points du plan dont vous connaissez la distance.',
     }[t];
     this.toolHint.textContent = msg || '';
+    const n = this.app.project?.measures?.length || 0;
+    if (t === 'measure' && n) this.toolHint.append(h('button', { class: 'hint-btn', onClick: () => this.app.removeMeasure(null) }, `Tout effacer (${n})`));
     this.toolHint.style.display = msg ? 'block' : 'none';
   }
 
@@ -428,6 +430,7 @@ export class UI {
       ['stand', 'Stand'],
       ['style', 'Style'],
       ['layers', 'Calques'],
+      ['content', 'Contenu'],
     ];
     const scroll = this.left.querySelector('.scroll')?.scrollTop || 0;
     this.left.replaceChildren(
@@ -443,6 +446,7 @@ export class UI {
     if (this.ltab === 'visuals') this.renderVisuals(body);
     if (this.ltab === 'stand') this.renderStand(body);
     if (this.ltab === 'layers') this.renderLayers(body);
+    if (this.ltab === 'content') this.renderContent(body);
     if (this.ltab === 'style') this.renderStyle(body);
     body.scrollTop = scroll;
   }
@@ -855,6 +859,76 @@ export class UI {
       );
       body.append(det);
     }
+  }
+
+  /** Contenu du stand : tous les éléments posés, par catégorie, avec quantités ; mesures */
+  renderContent(body) {
+    const a = this.app;
+    const p = a.project;
+    // catégorie d'un objet : celle de son type dans le catalogue (produits regroupés)
+    const catOfType = {};
+    for (const e of CATALOG) catOfType[e.type] ||= e.cat;
+    const catOf = (o) => (['product', 'device', 'model'].includes(o.type) ? 'Produits' : { 'Catalogue Spengler Medical': 'Produits', 'Produits Medica 2026': 'Produits', 'Gabarits produits': 'Produits' }[catOfType[o.type]] || catOfType[o.type] || 'Autres');
+    const ORDER = ['Produits', 'Mobilier', 'Structure', 'PLV & écrans', 'Éclairage', 'Décor', 'Personnages', 'Autres'];
+    const groups = {};
+    for (const o of p.objects) {
+      const cat = catOf(o);
+      const key = [o.name, o.ref || '', o.brand || ''].join('|');
+      const g = ((groups[cat] ||= {})[key] ||= { name: o.name, ref: o.ref, brand: o.brand, type: o.type, ids: [] });
+      g.ids.push(o.id);
+    }
+    const nProd = Object.values(groups.Produits || {}).reduce((n, g) => n + g.ids.length, 0);
+    body.append(
+      h('p', { class: 'muted' }, `${p.objects.length} élément(s) dans le stand, dont ${nProd} produit(s). Cliquez une ligne pour sélectionner l’élément (cliquez à nouveau pour passer au suivant).`),
+      h('button', { class: 'btn sm', onClick: () => X.exportCSV(a) }, 'Exporter la liste (Excel / CSV)'),
+    );
+    for (const cat of ORDER.filter((c) => groups[c])) {
+      const items = Object.values(groups[cat]).sort((x, y) => (x.brand || '').localeCompare(y.brand || '') || x.name.localeCompare(y.name));
+      const count = items.reduce((n, g) => n + g.ids.length, 0);
+      body.append(
+        h(
+          'details',
+          { open: true },
+          h('summary', { class: 'zone' }, h('span', { class: 'zname' }, cat), h('span', { class: 'count' }, count)),
+          h(
+            'ul',
+            { class: 'outliner content-list' },
+            items.map((g) => {
+              const sel = g.ids.indexOf(a.selected);
+              const hidden = g.ids.every((id) => p.hiddenZones.includes(a.obj(id)?.zone || ''));
+              return h(
+                'li',
+                { class: (sel >= 0 ? 'on ' : '') + (hidden ? 'hidden' : ''), title: hidden ? 'Élément masqué (calque)' : '', onClick: () => a.select(g.ids[(sel + 1) % g.ids.length]) },
+                h('span', { class: 'cname' }, g.name),
+                g.ids.length > 1 ? h('b', { class: 'qty' }, '× ' + g.ids.length) : null,
+                h('small', {}, [g.brand, g.ref ? 'réf. ' + g.ref : '', !g.brand && !g.ref ? TYPES[g.type]?.label || g.type : ''].filter(Boolean).join(' · ')),
+              );
+            }),
+          ),
+        ),
+      );
+    }
+    // mesures prises avec l'outil Mesurer
+    const ms = p.measures || [];
+    if (ms.length) {
+      body.append(
+        h(
+          'details',
+          { open: true },
+          h('summary', { class: 'zone' }, h('span', { class: 'zname' }, 'Mesures'), h('span', { class: 'count' }, ms.length)),
+          h(
+            'ul',
+            { class: 'outliner content-list' },
+            ms.map((m, i) => {
+              const d = Math.hypot(m.b[0] - m.a[0], m.b[1] - m.a[1], m.b[2] - m.a[2]);
+              return h('li', {}, h('span', { class: 'cname' }, 'Mesure ' + (i + 1) + ' : ' + a.fmtLen(d)), h('button', { class: 'li-del', title: 'Supprimer cette mesure', onClick: (e) => (e.stopPropagation(), a.removeMeasure(i)) }, '×'));
+            }),
+          ),
+          h('button', { class: 'btn sm', onClick: () => a.removeMeasure(null) }, 'Effacer toutes les mesures'),
+        ),
+      );
+    }
+    if (!p.objects.length && !ms.length) body.append(h('p', { class: 'muted' }, 'Le stand est vide : ajoutez des éléments depuis l’onglet « Ajouter ».'));
   }
 
   /* ---------------- panneau droit ---------------- */
