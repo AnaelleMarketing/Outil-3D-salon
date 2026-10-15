@@ -108,7 +108,8 @@ export class UI {
     this.top = h('header', { class: 'topbar' });
     this.left = h('aside', { class: 'left' });
     this.right = h('aside', { class: 'right' });
-    this.viewport = h('main', { class: 'viewport' });
+    // pas de menu du navigateur sur la vue 3D (cotes, étiquettes…) : le clic droit ouvre le menu de l'outil
+    this.viewport = h('main', { class: 'viewport', onContextmenu: (e) => e.preventDefault() });
     this.hud = h('div', { class: 'hud' });
     this.status = h('div', { class: 'status' });
     this.toolHint = h('div', { class: 'tool-hint' });
@@ -1097,6 +1098,9 @@ export class UI {
       item(null, 'Voir dans « Contenu »', () => this.showInContent()),
       item('trash', n > 1 ? `Supprimer les ${n} éléments` : 'Supprimer', () => a.remove(), 'danger'),
     );
+    // sous Windows, le menu du navigateur s'ouvre au relâchement du clic droit, sur l'élément sous le curseur
+    // (ce menu-ci) : on l'empêche
+    menu.addEventListener('contextmenu', (e) => e.preventDefault());
     document.body.append(menu);
     // dans la fenêtre, près du curseur
     const r = menu.getBoundingClientRect();
