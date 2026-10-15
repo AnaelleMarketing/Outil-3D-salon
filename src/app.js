@@ -43,11 +43,11 @@ export class App {
     this.bindInput();
 
     const params = new URLSearchParams(location.search);
-    // stands fournis par défaut à chaque compte (ajoutés une seule fois)
-    const SEEDS = { anaelle: ['tradex'], local: ['tradex'], alicia: ['medica', 'tradex'] };
+    // stands fournis par défaut à tous les comptes (ajoutés une seule fois par navigateur)
+    const SEEDS = ['medica', 'tradex'];
     const makers = { medica: medicaProject, tradex: tradexProject };
     if (!params.has('visite')) {
-      for (const key of SEEDS[this.me?.user || 'local'] || []) {
+      for (const key of SEEDS) {
         if (await get('seed:' + key)) continue;
         const seeded = makers[key]();
         await set('project:' + seeded.id, seeded);

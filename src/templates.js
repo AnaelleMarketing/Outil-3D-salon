@@ -370,7 +370,7 @@ export function basicProject(w, d, open = ['front'], extra = {}) {
 
 export const TEMPLATES = [
   { id: 'medica', label: 'Medica 2026 – Spengler Group (8 × 3 m)', make: () => medicaProject() },
-  { id: 'tradex', label: 'WHX Dubai 2027 – Luxamed / Spengler (6,95 × 2,95 m)', make: () => tradexProject(), owners: ['anaelle', 'alicia'] },
+  { id: 'tradex', label: 'WHX Dubai 2027 – Luxamed / Spengler (6,95 × 2,95 m)', make: () => tradexProject() },
   { id: '3x3', label: 'Stand en ligne 3 × 3 m', make: () => basicProject(3, 3) },
   { id: '6x3', label: 'Stand en ligne 6 × 3 m', make: () => basicProject(6, 3) },
   { id: '8x3', label: 'Stand en ligne 8 × 3 m', make: () => basicProject(8, 3) },
