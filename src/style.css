@@ -140,6 +140,7 @@ details[open] > summary::before { transform: rotate(90deg); }
 .card:hover { border-color: #9cc3d6; box-shadow: 0 3px 10px rgba(20,40,60,.1); }
 .card .thumb { aspect-ratio: 4 / 3; background: linear-gradient(#f7f9fa, #e9edf0); display: grid; place-items: center; overflow: hidden; }
 .card .thumb img { width: 100%; height: 100%; object-fit: contain; }
+.card .thumb img.photo { padding: 8px; mix-blend-mode: multiply; }
 .visuals .card .thumb img { object-fit: cover; }
 .checker { background: repeating-conic-gradient(#e8ecef 0 25%, #fff 0 50%) 0 0 / 14px 14px !important; }
 .checker img { object-fit: contain !important; }

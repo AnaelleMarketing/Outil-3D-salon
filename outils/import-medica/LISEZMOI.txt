@@ -1,0 +1,12 @@
+Import des produits d'un salon depuis la liste Excel et les fiches gsh-med.fr
+(utilisé pour Medica 2026 : MEDICA_PRODUCT_EN_2026.xlsx, feuille « Liste ADV 2026 »)
+
+Ordre d'exécution (PowerShell, Excel installé ; $tmp = un dossier de travail) :
+  1. gsh-scrape.ps1 -Xlsx <liste.xlsx> -Out $tmp\gsh-results.json   recherche chaque référence sur gsh-med.fr
+  2. gsh-pass2.ps1  -Results $tmp\gsh-results.json                   recherche par nom pour les références introuvables
+  3. gsh-refine.ps1 -Results $tmp\gsh-results.json                   fiches proches + choix de la photo « packshot »
+  4. gsh-images.ps1 -In $tmp\gsh-results.json -Dest public\produits -Out $tmp\gsh-images.json   photos recadrées (vignettes)
+  5. gsh-gen.ps1    -Results $tmp\gsh-results.json -Images $tmp\gsh-images.json -Out src\medica-products.js
+
+Le modèle 3D et le coloris de chaque produit sont choisis dans src/medica.js (règles MODELS et COLORS) ;
+les modèles 3D eux-mêmes sont dans src/devices.js.

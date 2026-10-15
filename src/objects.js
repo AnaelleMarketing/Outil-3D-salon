@@ -7,10 +7,11 @@ import { getMaterial, emissiveMaterial } from './materials.js';
 import * as assets from './assets.js';
 import { kelvinToColor, rad, rng } from './util.js';
 import { DEVICE_CATALOG, buildDevice } from './devices.js';
+import { MEDICA_CATALOG } from './medica.js';
 import { PEOPLE_CATALOG, buildPerson, SKINS } from './people.js';
 
 export const BRANDS = ['Spengler', 'ECM', 'Maison de Boissy', 'Luxamed', 'Holtex', 'DDM'];
-export const CATEGORIES = ['Catalogue Spengler Medical', 'Structure', 'Mobilier', 'PLV & écrans', 'Éclairage', 'Décor', 'Personnages', 'Gabarits produits'];
+export const CATEGORIES = ['Produits Medica 2026', 'Catalogue Spengler Medical','Structure', 'Mobilier', 'PLV & écrans', 'Éclairage', 'Décor', 'Personnages', 'Gabarits produits'];
 
 const G = { gMargin: 0, gRadius: 0 };
 export const CATALOG = [
@@ -75,6 +76,7 @@ export const CATALOG = [
     kw: [p.brand, p.gamme, p.ref].filter(Boolean).join(' '),
     d: { model: p.model, color: p.color, brand: p.brand, gamme: p.gamme, ref: p.ref || '', ...(p.params || {}) },
   })),
+  ...MEDICA_CATALOG,
 ];
 
 /** Description des types : champs éditables et comportements */

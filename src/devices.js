@@ -958,9 +958,279 @@ D.gueridon = (o) => {
   return g;
 };
 
+/* ---------- produits Medica 2026 (gammes Luxamed, Spengler, DDM, Holtex) ---------- */
+
+/** Lampe stylo de diagnostic (≈ 14 cm), posée à plat, avec agrafe chromée */
+D.penlight = (o) => {
+  const g = new THREE.Group();
+  const body = cyl(0.0065, 0.0065, 0.12, M(o.color || '#1c1c1f', 0.35, 0.2, { clearcoat: 0.6 }), 0, 0.0065, 0, 24);
+  body.rotation.x = Math.PI / 2;
+  const tip = cyl(0.006, 0.0065, 0.02, CHROME(), 0, 0.0065, -0.07, 24);
+  tip.rotation.x = Math.PI / 2;
+  const cap = cyl(0.0065, 0.0065, 0.008, CHROME(), 0, 0.0065, 0.064, 24);
+  cap.rotation.x = Math.PI / 2;
+  g.add(body, tip, cap, box(0.003, 0.003, 0.05, CHROME(), 0, 0.0145, 0.035));
+  return g;
+};
+
+/** Ophtalmoscope : manche couché, tête plate avec molette et oculaire */
+D.ophtalmo = (o) => {
+  const g = new THREE.Group();
+  const h = cyl(0.014, 0.014, 0.13, M(o.color || '#1d1e21', 0.5), 0, 0.014, 0.03, 24);
+  h.rotation.x = Math.PI / 2;
+  const neck = cyl(0.015, 0.014, 0.015, CHROME(), 0, 0.015, -0.042, 24);
+  neck.rotation.x = Math.PI / 2;
+  g.add(h, neck, box(0.036, 0.022, 0.05, M('#2b2d31', 0.4), 0, 0.016, -0.075, 0.01));
+  const wheel = cyl(0.016, 0.016, 0.006, M('#3b3e44', 0.5), 0.02, 0.016, -0.07, 24);
+  wheel.rotation.z = Math.PI / 2;
+  const eye = cyl(0.006, 0.006, 0.004, getMaterial('verre'), 0, 0.028, -0.088, 16);
+  g.add(wheel, eye);
+  return g;
+};
+
+/** Manche de laryngoscope (métal moleté) */
+D.laryngoManche = (o) => {
+  const g = new THREE.Group();
+  g.add(cyl(0.014, 0.014, 0.12, getMaterial('metal_brosse'), 0, 0.06, 0, 24));
+  for (let i = 0; i < 8; i++) g.add(cyl(0.0145, 0.0145, 0.003, M('#8e949b', 0.5, 0.3), 0, 0.03 + i * 0.008, 0, 24));
+  g.add(cyl(0.012, 0.014, 0.012, CHROME(), 0, 0.126, 0, 24), box(0.012, 0.008, 0.02, CHROME(), 0, 0.136, 0));
+  return g;
+};
+
+/** Lame de laryngoscope fibre optique : courbe (Macintosh, McCoy) ou droite (Miller) */
+D.laryngoLame = (o) => {
+  const g = new THREE.Group();
+  const steel = getMaterial('metal_brosse');
+  const pts = o.droite
+    ? [[0, 0.004, 0.06], [0, 0.004, -0.02], [0, 0.004, -0.08]]
+    : [[0, 0.004, 0.06], [0, 0.01, 0.0], [0, 0.022, -0.05], [0, 0.04, -0.08]];
+  const blade = tube(pts, 0.006, steel);
+  blade.scale.x = 2.2;
+  g.add(blade, box(0.016, 0.02, 0.02, steel, 0, 0.012, 0.065, 0.004));
+  return g;
+};
+
+/** Étui de transport (laryngoscope…) */
+D.etui = (o) => {
+  const g = new THREE.Group();
+  g.add(box(0.3, 0.07, 0.15, M(o.color || '#2b2e33', 0.7, 0, { sheen: 0.3 }), 0, 0.035, 0, 0.02));
+  g.add(box(0.31, 0.004, 0.155, M('#5a5f66', 0.6), 0, 0.045, 0, 0.002), box(0.06, 0.012, 0.012, M('#6b7078', 0.5, 0.6), 0, 0.072, 0.03, 0.004));
+  return g;
+};
+
+/** Marteau à réflexes (enfants) */
+D.marteau = (o) => {
+  const g = new THREE.Group();
+  const h = cyl(0.005, 0.006, 0.17, getMaterial('metal_brosse'), 0, 0.012, 0.0, 16);
+  h.rotation.x = Math.PI / 2;
+  const head = cyl(0.012, 0.012, 0.06, M(o.color || '#f2c230', 0.5), 0, 0.012, -0.09, 24);
+  head.rotation.z = Math.PI / 2;
+  g.add(h, head);
+  return g;
+};
+
+/** Oxymètre de pouls portable (type Master Palm) : boîtier debout, écran couleur */
+D.oxyPalm = (o) => {
+  const g = new THREE.Group();
+  g.add(box(0.07, 0.14, 0.032, M(o.color || '#f2f3f5', 0.35, 0, { clearcoat: 0.5 }), 0, 0.07, 0, 0.012));
+  const scr = screenPlane(0.05, 0.065, 'monitor');
+  scr.position.set(0, 0.095, 0.0165);
+  g.add(scr);
+  for (const k of [-1, 0, 1]) g.add(box(0.014, 0.01, 0.004, M('#c9ced4', 0.4), k * 0.02, 0.035, 0.017, 0.003));
+  g.add(tube([[0, 0.14, 0], [0.02, 0.17, 0.01], [0.06, 0.16, 0.03]], 0.0025, M('#c9ced4', 0.5)));
+  return g;
+};
+
+/** ECG portable : boîtier, écran, clavier et poignée (type ECG 6 pistes) */
+D.ecgPortable = (o) => {
+  const g = new THREE.Group();
+  const w = M(o.color || '#f2f3f5', 0.35, 0, { clearcoat: 0.4 });
+  g.add(box(0.32, 0.09, 0.26, w, 0, 0.045, 0, 0.02));
+  const panel = new THREE.Group();
+  panel.add(box(0.3, 0.005, 0.22, M('#dfe3e7', 0.4), 0, 0, 0, 0.01));
+  const scr = screenPlane(0.13, 0.09, 'ecg');
+  scr.rotation.x = -Math.PI / 2;
+  scr.position.set(-0.06, 0.004, -0.04);
+  panel.add(scr);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) panel.add(box(0.018, 0.006, 0.014, M(j === 0 ? '#2f7de1' : '#ffffff', 0.4), 0.05 + i * 0.024, 0.004, -0.07 + j * 0.026, 0.003));
+  panel.position.y = 0.093;
+  panel.rotation.x = 0.12;
+  g.add(panel);
+  g.add(tube([[-0.12, 0.09, -0.12], [-0.1, 0.16, -0.12], [0.1, 0.16, -0.12], [0.12, 0.09, -0.12]], 0.008, M('#c9ced4', 0.4)));
+  return g;
+};
+
+/** Petit enregistreur ECG (Cardiomate PC, My Cardiomate) avec ses câbles */
+D.ecgBoitier = (o) => {
+  const g = new THREE.Group();
+  g.add(box(0.07, 0.022, 0.1, M(o.color || '#f2f3f5', 0.35, 0, { clearcoat: 0.5 }), 0, 0.011, 0, 0.01));
+  g.add(box(0.03, 0.002, 0.03, M('#2f7de1', 0.4), 0, 0.023, 0.02, 0.004));
+  const cols = ['#e0393e', '#f0c419', '#2fa84f', '#1c1c1f', '#ffffff'];
+  cols.forEach((c, i) => g.add(tube([[-0.02 + i * 0.01, 0.01, -0.05], [-0.04 + i * 0.02, 0.006, -0.1], [-0.06 + i * 0.03, 0.006, -0.15]], 0.0018, M(c, 0.5))));
+  return g;
+};
+
+/** Station de diagnostic murale : panneau, deux manches suspendus, distributeur de spéculums */
+D.stationMurale = (o) => {
+  const g = new THREE.Group();
+  const plate = M(o.color || '#f2f3f5', 0.35, 0, { clearcoat: 0.4 });
+  g.add(box(0.36, 0.12, 0.05, plate, 0, 0.3, 0, 0.012));
+  for (const x of [-0.11, -0.04]) {
+    g.add(cyl(0.014, 0.014, 0.13, BLACK(), x, 0.21, 0.04, 20));
+    g.add(cyl(0.012, 0.016, 0.03, M('#2b2d31', 0.4), x, 0.29, 0.04, 20));
+    g.add(tube([[x, 0.15, 0.04], [x + 0.01, 0.08, 0.05], [x + 0.03, 0.14, 0.04], [x + 0.04, 0.27, 0.02]], 0.0035, BLACK()));
+  }
+  g.add(cyl(0.022, 0.022, 0.1, getMaterial('plexi_depoli'), 0.11, 0.29, 0.04, 20));
+  return g;
+};
+
+/** Brassard plat (tensiomètre ou garrot), avec tubulure(s) */
+D.brassard = (o) => {
+  const g = cuff(o.color || '#5d6166', o.long || 0.25, o.large || 0.12, 0.012);
+  const tubes = o.tubes ?? 1;
+  for (let i = 0; i < tubes; i++) g.add(tube([[0.02 * i, 0.012, -(o.large || 0.12) * 0.3], [0.03 + 0.02 * i, 0.012, -(o.large || 0.12) * 0.7], [0.08 + 0.02 * i, 0.012, -(o.large || 0.12)]], 0.003, M(i ? '#e0393e' : o.tubeColor || '#2b2e33', 0.5)));
+  return g;
+};
+
+/** Brassard enroulé (manchon) : brassards Soft Cuff / Clinic, cuissards */
+D.manchon = (o) => {
+  const g = new THREE.Group();
+  const r = o.rayon || 0.05;
+  const s = new THREE.Mesh(new THREE.CylinderGeometry(r, r, o.long || 0.14, 40, 1, true), new THREE.MeshPhysicalMaterial({ color: o.color || '#5d6166', roughness: 0.85, sheen: 0.5, side: THREE.DoubleSide }));
+  s.position.y = (o.long || 0.14) / 2;
+  s.scale.z = 0.8;
+  g.add(s, box(0.03, 0.04, 0.004, M('#e7eaee', 0.6), 0, (o.long || 0.14) * 0.6, r * 0.8 + 0.002));
+  return g;
+};
+
+/** Manchette à pression de perfusion : poche, manomètre / poire */
+D.perfusion = (o) => {
+  const g = new THREE.Group();
+  g.add(box(0.14, 0.03, 0.28, M(o.color || '#2a6fc9', 0.6, 0, { sheen: 0.4 }), 0, 0.015, 0, 0.012));
+  g.add(box(0.11, 0.004, 0.2, getMaterial('plexi_depoli'), 0, 0.032, 0.01, 0.004));
+  const bulb = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), RUBBER());
+  bulb.scale.set(0.022, 0.02, 0.04);
+  bulb.position.set(0.12, 0.02, -0.12);
+  g.add(bulb, tube([[0.05, 0.02, -0.14], [0.08, 0.02, -0.16], [0.1, 0.02, -0.13]], 0.003, M('#e0e3e6', 0.5)));
+  if (o.manometre) {
+    const d = gaugeHead(0.025, 0.018);
+    d.position.set(-0.02, 0.04, -0.1);
+    g.add(d);
+  }
+  return g;
+};
+
+/** Pied à perfusion inox, base 5 branches, crochets */
+D.potence = (o) => {
+  const g = new THREE.Group();
+  const base = M(o.color || '#d7dbe0', 0.5);
+  for (let i = 0; i < 5; i++) {
+    const a = (i * Math.PI * 2) / 5;
+    const leg = box(0.28, 0.025, 0.04, base, Math.cos(a) * 0.14, 0.055, Math.sin(a) * 0.14);
+    leg.rotation.y = -a;
+    g.add(leg, cyl(0.022, 0.022, 0.04, RUBBER(), Math.cos(a) * 0.28, 0.022, Math.sin(a) * 0.28, 12));
+  }
+  g.add(cyl(0.013, 0.013, 1.85, getMaterial('metal_brosse'), 0, 1.0, 0, 16));
+  for (let i = 0; i < (o.crochets || 4); i++) {
+    const a = (i * Math.PI * 2) / (o.crochets || 4);
+    g.add(tube([[0, 1.9, 0], [Math.cos(a) * 0.08, 1.92, Math.sin(a) * 0.08], [Math.cos(a) * 0.12, 1.88, Math.sin(a) * 0.12], [Math.cos(a) * 0.13, 1.91, Math.sin(a) * 0.13]], 0.004, CHROME()));
+  }
+  return g;
+};
+
+/** Garrot électronique seul (Little Pump) ou socle à roulettes seul */
+D.garrotSeul = (o) => easyPumpUnit(o.color);
+D.socleRoulettes = (o) => {
+  const g = D.easyPumpPied(o);
+  g.children.splice(g.children.length - 1, 1); // sans le boîtier
+  return g;
+};
+
+/** Garrot manuel : brassard + manomètre et poire */
+D.garrotManuel = (o) => {
+  const g = new THREE.Group();
+  const c = D.brassard({ color: o.color || '#3a3f47', long: 0.32, large: 0.08 });
+  g.add(c);
+  const head = gaugeHead(0.028, 0.02);
+  head.position.set(0.05, 0.03, 0.08);
+  const bulb = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), RUBBER());
+  bulb.scale.set(0.024, 0.022, 0.042);
+  bulb.position.set(0.11, 0.022, 0.1);
+  g.add(head, bulb);
+  return g;
+};
+
+/** Thermomètre digital crayon (Tempo) */
+D.thermoCrayon = (o) => {
+  const g = new THREE.Group();
+  const w = M(o.color || '#f2f3f5', 0.3, 0, { clearcoat: 0.5 });
+  g.add(box(0.022, 0.012, 0.09, w, 0, 0.006, 0.02, 0.005));
+  const tip = cyl(0.002, 0.004, 0.045, CHROME(), 0, 0.006, -0.045, 12);
+  tip.rotation.x = Math.PI / 2;
+  const scr = screenPlane(0.014, 0.01, 'bp');
+  scr.rotation.x = -Math.PI / 2;
+  scr.position.set(0, 0.0122, 0.02);
+  g.add(tip, scr, box(0.008, 0.002, 0.008, M('#2a6fc9', 0.4), 0, 0.0125, 0.05, 0.002));
+  return g;
+};
+
+/** Thermomètre auriculaire (Tempo Ear) */
+D.thermoOreille = (o) => {
+  const g = new THREE.Group();
+  const w = M(o.color || '#f2f3f5', 0.3, 0, { clearcoat: 0.5 });
+  g.add(box(0.04, 0.12, 0.03, w, 0, 0.06, 0, 0.012));
+  const probe = cyl(0.006, 0.012, 0.03, w, 0, 0.13, 0.008, 20);
+  probe.rotation.x = 0.4;
+  const scr = screenPlane(0.026, 0.018, 'bp');
+  scr.position.set(0, 0.08, 0.0155);
+  g.add(probe, scr);
+  return g;
+};
+
+/** Petits accessoires : spéculum (cône), poire d'insufflation, filtre, porte-miroir, boîte de spéculums */
+D.speculum = (o) => {
+  const g = new THREE.Group();
+  const c = cyl(o.rayon || 0.0035, 0.008, 0.05, o.metal ? getMaterial('metal_brosse') : M(o.color || '#8a8f96', 0.4), 0, 0.008, 0, 20);
+  c.rotation.x = Math.PI / 2;
+  g.add(c);
+  return g;
+};
+D.poire = () => {
+  const g = new THREE.Group();
+  const bulb = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), RUBBER());
+  bulb.scale.set(0.022, 0.022, 0.035);
+  bulb.position.set(0, 0.022, 0.03);
+  g.add(bulb, tube([[0, 0.02, -0.005], [0.02, 0.012, -0.05], [0.05, 0.012, -0.09]], 0.0025, M('#e7eaee', 0.5)));
+  return g;
+};
+D.accessoire = (o) => {
+  const g = new THREE.Group();
+  const b = cyl(0.007, 0.007, o.long || 0.03, M(o.color || '#2a6fc9', 0.3, 0, { transmission: o.verre ? 0.6 : 0 }), 0, 0.007, 0, 20);
+  b.rotation.x = Math.PI / 2;
+  g.add(b);
+  if (o.miroir) {
+    const m = cyl(0.01, 0.01, 0.002, getMaterial('chrome'), 0, 0.012, -0.07, 24);
+    g.add(m, box(0.003, 0.003, 0.08, CHROME(), 0, 0.007, -0.03));
+  }
+  return g;
+};
+D.boiteSpeculums = (o) => {
+  const g = new THREE.Group();
+  g.add(box(0.1, 0.07, 0.07, M('#f2f3f5', 0.7), 0, 0.035, 0, 0.004));
+  g.add(box(0.07, 0.02, 0.002, M(o.color || '#2a6fc9', 0.5), 0, 0.045, 0.036));
+  return g;
+};
+
 export function buildDevice(o) {
   const fn = D[o.model];
-  const g = fn ? fn(o) : new THREE.Group();
+  let g = fn ? fn(o) : new THREE.Group();
+  // échelle facultative (même modèle en plus petit / plus grand : EVI 7", Little Pump…)
+  if (o.scale && o.scale !== 1) {
+    const inner = g;
+    inner.scale.setScalar(o.scale);
+    g = new THREE.Group();
+    g.add(inner);
+  }
   // le point le plus bas du produit repose exactement sur son support
   const b = new THREE.Box3().setFromObject(g);
   if (!b.isEmpty()) {

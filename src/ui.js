@@ -56,7 +56,7 @@ export class UI {
     this.rtab = 'props';
     this.search = '';
     this.brand = '';
-    this.openSections = new Set(['Catalogue Spengler Medical', 'Structure', 'Mobilier', 'Produits Spengler']);
+    this.openSections = new Set(['Produits Medica 2026', 'Catalogue Spengler Medical','Structure', 'Mobilier', 'Produits Spengler']);
   }
 
   mount() {
@@ -447,9 +447,11 @@ export class UI {
     body.scrollTop = scroll;
   }
 
-  card(label, objData, sub) {
+  card(label, objData, sub, photo) {
+    // vignette : la photo du produit si elle existe (chargée à l'affichage), sinon un rendu 3D
     const img = h('img', { alt: '' });
-    thumbFor(objData, img);
+    if (photo) Object.assign(img, { loading: 'lazy', className: 'photo', src: photo });
+    else thumbFor(objData, img);
     const el = h(
       'div',
       {
@@ -524,12 +526,12 @@ export class UI {
     );
     for (const cat of CATEGORIES) {
       const items = CATALOG.filter((e) => e.cat === cat && match(e.label + ' ' + (e.kw || '')));
-      if (cat === 'Catalogue Spengler Medical') {
+      if (cat === 'Catalogue Spengler Medical' || cat === 'Produits Medica 2026') {
         // regroupé par gamme, comme sur gsh-med.fr
         const cards = [];
         for (const g of [...new Set(items.map((e) => e.gamme))]) {
           cards.push(h('div', { class: 'brand-sep' }, g));
-          for (const e of items.filter((x) => x.gamme === g)) cards.push(this.card(e.label, fromCatalog(e), e.d.brand + (e.d.ref ? ' · réf. ' + e.d.ref : '')));
+          for (const e of items.filter((x) => x.gamme === g)) cards.push(this.card(e.label, fromCatalog(e), [e.d.brand, e.d.ref ? 'réf. ' + e.d.ref : ''].filter(Boolean).join(' · '), e.photo));
         }
         if (items.length) section(cat, cards);
       } else section(cat, items.map((e) => this.card(e.label, fromCatalog(e))));
@@ -1110,7 +1112,7 @@ export class UI {
           ),
         )
       : null;
-    body.append(h('h4', {}, 'Dimensions et finitions'), chips, dimsBox, other);
+    body.append(...[h('h4', {}, 'Dimensions et finitions'), chips, dimsBox, other].filter(Boolean));
 
 
     if (o.type === 'model') {
