@@ -237,9 +237,10 @@ export class UI {
     this.top.append(
       ...[
       h('div', { class: 'brand', title: 'Revenir à la page d’accueil', onClick: () => showSplash({ ready: Promise.resolve(), visite: a.readOnly }).then(() => a.viewer.resize()) }, h('img', { class: 'logo', src: 'brand/logo-s.png', alt: 'Spengler Medical' }), h('div', {}, h('b', {}, 'Stand 3D'), h('small', {}, 'SPENGLER MEDICAL'))),
-      b('projects', 'Projets', 'folder', () => this.projectsDialog()),
-      a.readOnly ? null : h('button', { class: 'tb assist', title: 'Assistant : décrivez l’esprit du stand et vos produits, il propose deux agencements', onClick: () => this.assistantDialog() }, h('span', { class: 'ic', html: ICON.spark }), h('span', {}, 'Assistant')),
-      h('div', { class: 'pinfo' }, name, h('small', {}, [p.salon, p.hall, `${p.stand.w} × ${p.stand.d} m`].filter(Boolean).join(' · '))),
+      b('projects', '', 'folder', () => this.projectsDialog(), 'Projets'),
+      a.readOnly ? null : h('button', { class: 'tb assist', title: 'Assistant : décrivez l’esprit du stand et vos produits, il propose deux agencements', onClick: () => this.assistantDialog() }, h('span', { class: 'ic', html: ICON.spark })),
+      // nom du projet, avec en dessous le salon, la taille et le statut de validation
+      h('div', { class: 'pinfo' }, name, h('div', { class: 'pmeta-line' }, h('small', {}, [p.salon, `${p.stand.w} × ${p.stand.d} m`].filter(Boolean).join(' · ')), this.statusSelect())),
       h('div', { class: 'grp' }, b('undo', '', 'undo', () => a.undo(), 'Annuler (⌘Z)'), b('redo', '', 'redo', () => a.redo(), 'Rétablir (⇧⌘Z)')),
       seg(
         'mode',
@@ -251,45 +252,49 @@ export class UI {
         a.viewer?.mode || 'orbit',
         (v) => this.setMode(v),
       ),
-      seg(
+      // rendu réaliste : un seul bouton qui s'allume / s'éteint (au lieu de Travail / Rendu)
+      b(
         'quality',
-        [
-          ['work', 'Travail', 'Mode fluide pour concevoir'],
-          ['render', 'Rendu', 'Mode réaliste : ombres des spots, occlusion, halos lumineux'],
-        ],
-        a.viewer?.quality || 'work',
-        (v) => {
-          a.viewer.setQuality(v);
+        '',
+        'sun',
+        () => {
+          a.viewer.setQuality(a.viewer.quality === 'render' ? 'work' : 'render');
           this.renderTopState();
           this.updateImmersive();
         },
+        'Rendu réaliste : ombres des spots, occlusion, halos lumineux (cliquer pour activer / désactiver)',
       ),
-      h('div', { class: 'grp' }, b('measure', 'Mesurer', 'ruler', () => a.setTool('measure'), 'Mesurer entre deux points (M)'), b('comment', 'Commenter', 'comment', () => a.startComment())),
+      h('div', { class: 'grp' }, b('measure', '', 'ruler', () => a.setTool('measure'), 'Mesurer entre deux points (M)'), b('comment', '', 'comment', () => a.startComment(), 'Commenter')),
       h('div', { class: 'spacer' }),
-      (this.statusSel = h(
-        'select',
-        {
-          class: 'status-sel',
-          title: 'Statut de validation',
-          value: p.status || 'brouillon',
-          disabled: a.readOnly,
-          onChange: (e) => {
-            p.status = e.target.value;
-            a.commit('Statut');
-          },
-        },
-        h('option', { value: 'brouillon' }, '● Brouillon'),
-        h('option', { value: 'avalider' }, '● À valider'),
-        h('option', { value: 'valide' }, '● Validé'),
-      )),
-      (this.budgetChip = h('button', { class: 'budget-chip', title: 'Estimation budgétaire (tarifs indicatifs modifiables)', onClick: () => this.showTab('budget', true) }, '')),
       this.exportMenu(),
-      a.collab?.enabled ? (this.collabBtn = h('button', { class: 'tb collab-btn', title: 'Collaborer', onClick: () => this.collabDialog() }, icon('users'), h('span', {}, 'Collaborer'), h('span', { class: 'cbadge' }))) : null,
+      a.collab?.enabled ? (this.collabBtn = h('button', { class: 'tb collab-btn', title: 'Collaborer', onClick: () => this.collabDialog() }, icon('users'), h('span', { class: 'cbadge' }))) : null,
       this.accountMenu(),
       ].filter(Boolean),
     );
     this.renderTopState();
     this.renderCollabBadge();
+  }
+
+  /** Statut de validation (Brouillon / À valider / Validé), affiché sous le nom du projet */
+  statusSelect() {
+    const a = this.app;
+    const p = a.project;
+    return (this.statusSel = h(
+      'select',
+      {
+        class: 'status-sel',
+        title: 'Statut de validation du projet',
+        value: p.status || 'brouillon',
+        disabled: a.readOnly,
+        onChange: (e) => {
+          p.status = e.target.value;
+          a.commit('Statut');
+        },
+      },
+      h('option', { value: 'brouillon' }, '● Brouillon'),
+      h('option', { value: 'avalider' }, '● À valider'),
+      h('option', { value: 'valide' }, '● Validé'),
+    ));
   }
 
   renderCollabBadge() {
@@ -317,10 +322,8 @@ export class UI {
     this.btn.redo.disabled = a.hIndex >= a.history.length - 1 || a.readOnly;
     this.btn.measure.classList.toggle('on', a.tool === 'measure');
     this.btn.comment.classList.toggle('on', a.tool === 'comment');
-    for (const k of ['mode', 'quality']) {
-      const cur = k === 'mode' ? a.viewer.mode : a.viewer.quality;
-      this.btn[k].querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.v === cur));
-    }
+    this.btn.mode.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.dataset.v === a.viewer.mode));
+    this.btn.quality.classList.toggle('on', a.viewer.quality === 'render');
     if (this.statusSel) this.statusSel.dataset.s = a.project.status || 'brouillon';
     if (this.budgetChip) this.budgetChip.textContent = '≈ ' + fmtEUR(budget(a).total) + ' HT';
   }
