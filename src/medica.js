@@ -86,7 +86,8 @@ const MODELS = [
   [/vaquez|tensiom/i, (n) => ({ model: 'manopoire', color: colorOf(n, '#1d2f5a') })],
   [/soft cuff/i, (n) => manchon(n, '#5d6166')],
   [/clinic/i, (n) => manchon(n, '#e8c547')],
-  [/pressure infusion cuff/i, (n) => ({ model: 'perfusion', color: /grey/i.test(n) ? '#8a8f96' : /clear/i.test(n) ? '#d9e6ee' : '#2a6fc9', manometre: /grey|clear/i.test(n) })],
+  // manchettes : modèle à la taille d'une poche de 1000 cc, mise à l'échelle selon le volume (500 / 1000 / 3000 cc)
+  [/pressure infusion cuff/i, (n) => ({ model: 'perfusion', color: /grey/i.test(n) ? '#8a8f96' : /clear/i.test(n) ? '#d9e6ee' : '#2a6fc9', manometre: /grey|clear/i.test(n), scale: { 500: 0.8, 1000: 1, 3000: 1.45 }[(n.match(/(\d+)\s*cc/i) || [])[1]] || 1 })],
   [/iv pole/i, () => ({ model: 'potence' })],
   [/easy pump/i, () => ({ model: 'easyPump' })],
   [/little pump/i, () => ({ model: 'garrotSeul', scale: 0.75 })],
@@ -99,10 +100,18 @@ const MODELS = [
   [/tempo/i, (n) => ({ model: 'thermoCrayon', color: /blue/i.test(n) ? '#2a6fc9' : '#f2f3f5' })],
 ];
 
-/** Brassard enroulé : taille d'après le nom (nourrisson, enfant, adulte, large adulte, cuissard) */
+/** Largeur des brassards PNI (cm) : celle de la gamme Soft Cuff, donnée dans la liste */
+const LARGEUR_BRASSARD = [[/cuissard|thigh/i, 19], [/large/i, 16], [/adulte|adult/i, 13], [/enfant|child/i, 8], [/./, 4]];
+
+/** Brassard PNI fermé (comme sur les photos GSH) : diamètre = plus grand tour de bras / π, hauteur = largeur.
+ *  Cotes lues dans le nom : « (6-12 x 4 cm) » = tour de bras 6 à 12 cm, largeur 4 cm ; « (6 x 12 cm) » = tour de bras 6 à 12 cm. */
 function manchon(n, color) {
-  const [rayon, long] = /cuissard|thigh/i.test(n) ? [0.08, 0.2] : /large/i.test(n) ? [0.06, 0.17] : /adulte|adult/i.test(n) ? [0.05, 0.14] : /enfant|child/i.test(n) ? [0.035, 0.1] : [0.025, 0.07];
-  return { model: 'manchon', color, rayon, long };
+  const m = n.match(/\((\d+)\s*(?:-\s*(\d+))?\s*x\s*(\d+)\s*cm\)/i);
+  let tour = 30;
+  let largeur = LARGEUR_BRASSARD.find(([re]) => re.test(n))[1];
+  if (m && m[2]) [tour, largeur] = [+m[2], +m[3]];
+  else if (m) tour = +m[3];
+  return { model: 'manchon', color, rayon: tour / 100 / Math.PI / 2, long: largeur / 100 };
 }
 
 /** Marque, déduite du nom ou de la référence quand la liste ne la donne pas */

@@ -1041,11 +1041,11 @@ D.oxyPalm = (o) => {
   return g;
 };
 
-/** ECG portable : boîtier, écran, clavier et poignée (type ECG 6 pistes) */
+/** ECG portable : boîtier, écran, clavier et poignée (ECG 6 pistes : 31 × 24,4 × 6,5 cm d'après la fiche GSH) */
 D.ecgPortable = (o) => {
   const g = new THREE.Group();
   const w = M(o.color || '#f2f3f5', 0.35, 0, { clearcoat: 0.4 });
-  g.add(box(0.32, 0.09, 0.26, w, 0, 0.045, 0, 0.02));
+  g.add(box(0.31, 0.055, 0.244, w, 0, 0.0275, 0, 0.015));
   const panel = new THREE.Group();
   panel.add(box(0.3, 0.005, 0.22, M('#dfe3e7', 0.4), 0, 0, 0, 0.01));
   const scr = screenPlane(0.13, 0.09, 'ecg');
@@ -1053,10 +1053,11 @@ D.ecgPortable = (o) => {
   scr.position.set(-0.06, 0.004, -0.04);
   panel.add(scr);
   for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) panel.add(box(0.018, 0.006, 0.014, M(j === 0 ? '#2f7de1' : '#ffffff', 0.4), 0.05 + i * 0.024, 0.004, -0.07 + j * 0.026, 0.003));
-  panel.position.y = 0.093;
-  panel.rotation.x = 0.12;
+  panel.scale.set(0.97, 1, 0.95);
+  panel.position.y = 0.058;
   g.add(panel);
-  g.add(tube([[-0.12, 0.09, -0.12], [-0.1, 0.16, -0.12], [0.1, 0.16, -0.12], [0.12, 0.09, -0.12]], 0.008, M('#c9ced4', 0.4)));
+  // poignée rabattue à plat à l'arrière
+  g.add(tube([[-0.12, 0.058, -0.1], [-0.1, 0.062, -0.13], [0.1, 0.062, -0.13], [0.12, 0.058, -0.1]], 0.006, M('#c9ced4', 0.4)));
   return g;
 };
 
