@@ -151,6 +151,21 @@ export class UI {
     this.applyPanels();
   }
 
+  /** Vue Visiteur ou mode Rendu : panneaux repliés pour profiter de la 3D ; rouverts comme avant au retour */
+  updateImmersive() {
+    const v = this.app.viewer;
+    const immersive = v?.mode === 'visitor' || v?.quality === 'render';
+    if (immersive && !this.savedPanels) {
+      this.savedPanels = { ...this.panels };
+      this.panels = { left: true, right: true };
+      this.applyPanels();
+    } else if (!immersive && this.savedPanels) {
+      this.panels = this.savedPanels;
+      this.savedPanels = null;
+      this.applyPanels();
+    }
+  }
+
   applyPanels() {
     document.body.classList.toggle('hide-left', this.panels.left);
     document.body.classList.toggle('hide-right', this.panels.right);
@@ -245,6 +260,7 @@ export class UI {
         (v) => {
           a.viewer.setQuality(v);
           this.renderTopState();
+          this.updateImmersive();
         },
       ),
       h('div', { class: 'grp' }, b('measure', 'Mesurer', 'ruler', () => a.setTool('measure'), 'Mesurer entre deux points (M)'), b('comment', 'Commenter', 'comment', () => a.startComment())),
@@ -418,6 +434,7 @@ export class UI {
     a.sync();
     this.renderTopState();
     this.renderHud();
+    this.updateImmersive();
   }
 
   renderHud() {
