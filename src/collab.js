@@ -3,7 +3,7 @@ import * as assets from './assets.js';
 import { set } from './store.js';
 import { ALL_IMAGE_KEYS } from './objects.js';
 
-const API = '/api/collab';
+const API = 'api/collab.php';
 const MAX_UPLOAD = 4.2e6;
 // suivi sobre : seulement quand l'onglet est affiché et que la personne est active
 const INBOX_EVERY = 60000; // demandes et projets partagés

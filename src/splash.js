@@ -23,7 +23,7 @@ export function showSplash({ ready, visite = false }) {
       btn,
       h('div', { class: 'splash-feats' }, ['Stand sur mesure', 'Mobilier & produits', 'Visuels de marque', 'Visite 3D & exports'].map((t) => h('span', {}, t))),
     ),
-    h('footer', { class: 'splash-foot' }, '© 2026 Outil de conception 3D – Propriétaire : Anaelle Cintract · ', h('a', { href: '/mentions-legales.html', target: '_blank', rel: 'noopener' }, 'Mentions légales et conditions d’utilisation')),
+    h('footer', { class: 'splash-foot' }, '© 2026 Outil de conception 3D – Propriétaire : Anaelle Cintract · ', h('a', { href: 'mentions-legales.html', target: '_blank', rel: 'noopener' }, 'Mentions légales et conditions d’utilisation')),
   );
   document.body.append(el);
 

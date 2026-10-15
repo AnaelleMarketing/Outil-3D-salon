@@ -1,0 +1,61 @@
+# Déploiement automatique sur l'hébergement OVH à chaque push sur main.
+# Secrets à créer dans GitHub (Settings > Secrets and variables > Actions) :
+#   FTP_PASSWORD   mot de passe FTP OVH (compte gkslnyu-acintract)
+#   STAND_USERS    comptes du site, JSON {"identifiant": "code", ...}
+#   STAND_SECRET   longue chaîne aléatoire qui signe les cookies de session
+name: Déploiement OVH
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ovh
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installation
+        run: npm ci
+
+      - name: Construction du site
+        run: npm run build
+
+      - name: Vérification du code PHP
+        run: |
+          test -f dist/.htaccess
+          for f in $(find dist -name '*.php'); do php -l "$f"; done
+
+      - name: Configuration des comptes (lib/config.php)
+        env:
+          STAND_USERS: ${{ secrets.STAND_USERS }}
+          STAND_SECRET: ${{ secrets.STAND_SECRET }}
+        run: |
+          node -e '
+            const users = JSON.parse(process.env.STAND_USERS || "{}");
+            const secret = process.env.STAND_SECRET || "";
+            if (!Object.keys(users).length || secret.length < 16) throw new Error("Secrets STAND_USERS / STAND_SECRET manquants ou trop courts");
+            const b64 = Buffer.from(JSON.stringify({ users, secret })).toString("base64");
+            require("fs").writeFileSync("dist/lib/config.php", `<?php\nreturn json_decode(base64_decode(\x27${b64}\x27), true);\n`);
+          '
+          php -l dist/lib/config.php
+
+      - name: Envoi FTP vers stand3d/
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ftp.cluster131.hosting.ovh.net
+          port: 21
+          username: gkslnyu-acintract
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./dist/
+          server-dir: ./stand3d/

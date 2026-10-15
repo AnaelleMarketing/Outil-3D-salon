@@ -1,0 +1,9 @@
+# Hébergement OVH : toutes les adresses passent par gate.php (connexion obligatoire),
+# sauf le logo, la page des mentions légales et l'API (qui vérifie elle-même la session).
+Options -Indexes
+DirectoryIndex gate.php
+
+RewriteEngine On
+RewriteRule ^(data|lib)(/|$) - [F,L]
+RewriteRule ^(brand/.+|mentions-legales\.html|gate\.php|api/collab\.php)$ - [L]
+RewriteRule ^(.*)$ gate.php?_gate=$1 [B,L,QSA]

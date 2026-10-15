@@ -320,9 +320,9 @@ export class UI {
       h('hr'),
       item('share', 'Partager le stand…', () => this.shareDialog()),
       item('help', 'Aide et raccourcis', () => this.helpDialog()),
-      h('button', { onClick: () => (menu.classList.remove('open'), window.open('/mentions-legales.html', '_blank')) }, h('span', { class: 'ic' }), 'Mentions légales'),
+      h('button', { onClick: () => (menu.classList.remove('open'), window.open('mentions-legales.html', '_blank')) }, h('span', { class: 'ic' }), 'Mentions légales'),
       online ? h('hr') : null,
-      online ? h('a', { class: 'menu-link danger', href: '/__logout' }, 'Se déconnecter') : null,
+      online ? h('a', { class: 'menu-link danger', href: '__logout' }, 'Se déconnecter') : null,
     ));
     document.body.append(menu);
     const initial = (a.me?.name || (online ? '?' : 'L')).charAt(0).toUpperCase();
@@ -1533,7 +1533,7 @@ export class UI {
         k('Z Q S D', 'Vue visiteur : marcher (ou W A S D, flèches)'),
         k('Échap', 'Désélectionner / quitter un outil'),
       ),
-      h('p', { class: 'muted', style: { marginTop: '16px' } }, '© 2026 Anaelle Cintract – Tous droits réservés. Usage réservé à Spengler Medical. ', h('a', { href: '/mentions-legales.html', target: '_blank', rel: 'noopener' }, 'Mentions légales et conditions d’utilisation')),
+      h('p', { class: 'muted', style: { marginTop: '16px' } }, '© 2026 Anaelle Cintract – Tous droits réservés. Usage réservé à Spengler Medical. ', h('a', { href: 'mentions-legales.html', target: '_blank', rel: 'noopener' }, 'Mentions légales et conditions d’utilisation')),
     );
     this.modal('Aide', body, [['Fermer', null]]);
   }

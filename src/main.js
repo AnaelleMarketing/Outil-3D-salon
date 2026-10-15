@@ -11,7 +11,7 @@ root.replaceChildren();
 /** Compte connecté (version en ligne) ; en local, pas de compte : mode personnel */
 async function whoami() {
   try {
-    const r = await fetch('/api/collab?a=me', { cache: 'no-store' });
+    const r = await fetch('api/collab.php?a=me', { cache: 'no-store' });
     if (r.ok && (r.headers.get('content-type') || '').includes('json')) return await r.json();
   } catch (e) {
     /* hors ligne ou version locale */

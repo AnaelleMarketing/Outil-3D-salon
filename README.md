@@ -15,12 +15,24 @@ Version optimisée : `npm run build && npm run preview` (même port).
 
 ## Mise en ligne
 
-Le dépôt GitHub (privé) est relié au projet Vercel `stand3d-spengler` :
-chaque `git push` sur `main` déploie automatiquement https://stand3d-spengler.vercel.app.
+Le site est hébergé chez OVH (dossier `stand3d/` du FTP). Chaque `git push` sur `main` lance
+le workflow GitHub Actions `.github/workflows/deploy.yml` : construction (`npm run build`), puis envoi FTP de `dist/`.
 
 ```bash
 git add -A && git commit -m "Description du changement" && git push
 ```
+
+Secrets GitHub à créer (Settings › Secrets and variables › Actions) :
+
+| Secret | Contenu |
+|---|---|
+| `FTP_PASSWORD` | mot de passe FTP OVH |
+| `STAND_USERS` | comptes du site, JSON `{"identifiant": "code"}` |
+| `STAND_SECRET` | longue chaîne aléatoire (signature des cookies de session) |
+
+Côté serveur (PHP, dans `public/`) : `gate.php` affiche la page de connexion et sert les fichiers,
+`api/collab.php` gère le partage de projets entre comptes. Les projets partagés sont stockés dans `data/`
+sur le serveur (non accessible depuis le web) ; `lib/config.php` est généré au déploiement à partir des secrets.
 
 Les projets, visuels et la bibliothèque sont enregistrés automatiquement dans le navigateur (IndexedDB),
 avec un historique de versions (toutes les 10 min ou à la demande).
