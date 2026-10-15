@@ -1762,7 +1762,7 @@ export class UI {
   renderSteps() {
     const a = this.app;
     this.stepbar.replaceChildren(
-      ...STEPS.map((st, i) => h('button', { class: 'step' + (i === this.step ? ' on' : '') + (i < this.step ? ' done' : ''), onClick: () => this.goStep(i) }, h('span', { class: 'num' }, i < this.step ? '✓' : String(i + 1)), st.label)),
+      ...STEPS.map((st, i) => h('button', { class: 'step' + (i === this.step ? ' on' : '') + (i < this.step ? ' done' : ''), onClick: () => this.goStep(i) }, st.label)),
       h('span', { class: 'sp' }),
       h('button', { class: 'btn sm coach-toggle' + (this.coachOpen ? ' on' : ''), title: 'Afficher ou masquer le conseil de l’étape', onClick: () => ((this.coachOpen = !this.coachOpen), this.renderSteps()) }, 'ⓘ Conseil'),
       this.step < STEPS.length - 1 ? h('button', { class: 'btn sm primary', onClick: () => this.goStep(this.step + 1) }, 'Étape suivante →') : null,
