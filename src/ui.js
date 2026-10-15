@@ -1241,9 +1241,13 @@ export class UI {
       ),
     );
     this.posInputs = pos;
-    body.append(h('h4', {}, 'Position'), pos);
+    // trois onglets : Dimensions (position + taille) · Finition · Visuel
+    const paneDims = h('div', {});
+    const paneFin = h('div', {});
+    const paneVis = h('div', {});
+    paneDims.append(h('h4', {}, 'Position'), pos);
     const zones = [...new Set(a.project.objects.map((x) => x.zone).filter(Boolean))];
-    body.append(
+    paneDims.append(
       field('Zone / calque', h('input', { list: 'zones-dl', 'data-key': 'zone', value: o.zone || '', placeholder: 'ex. Cardio', disabled: ro, onChange: (e) => upd({ zone: e.target.value.trim() }) })),
       h('datalist', { id: 'zones-dl' }, zones.map((z) => h('option', { value: z }))),
     );
@@ -1368,24 +1372,40 @@ export class UI {
           ),
         )
       : null;
-    body.append(...[h('h4', {}, 'Dimensions et finitions'), chips, dimsBox, other].filter(Boolean));
-
-
+    if (chips || dimsBox.childElementCount) paneDims.append(...[h('h4', {}, 'Dimensions'), chips, dimsBox].filter(Boolean));
     if (o.type === 'model') {
       const m = assets.getMeta(o.model);
-      if (m) body.append(h('p', { class: 'muted' }, `Fichier : ${m.name} · ${(m.tris || 0).toLocaleString('fr-FR')} triangles`));
+      if (m) paneDims.append(h('p', { class: 'muted' }, `Fichier : ${m.name} · ${(m.tris || 0).toLocaleString('fr-FR')} triangles`));
     }
+    if (other.childElementCount) paneFin.append(other);
 
     // visuels
     for (const key of T.images || []) {
       if (key === 'imageBack' && o.type === 'lightbox' && !o.doubleSided && !o.imageBack) continue;
-      body.append(this.imageField(o, key, ro));
+      paneVis.append(this.imageField(o, key, ro));
     }
     if (T.graphic && (o.image || o.imageBack)) {
       const g = h('div', { class: 'grid2' });
       g.append(lenIn('gMargin', 'Marge du visuel', o.gMargin || 0, 0), lenIn('gRadius', 'Rayon des angles', o.gRadius || 0, 0));
-      body.append(g);
+      paneVis.append(g);
     }
+
+    // onglets présents pour cet objet ; le dernier choisi reste ouvert d'un objet à l'autre
+    const panes = [
+      ['dims', 'Dimensions', paneDims],
+      ['fin', 'Finition', paneFin],
+      ['vis', 'Visuel', paneVis],
+    ].filter(([, , el]) => el.childElementCount);
+    if (!panes.some(([k]) => k === this.propTab)) this.propTab = panes[0]?.[0];
+    const show = (k) => {
+      this.propTab = k;
+      for (const [pk, , el] of panes) el.hidden = pk !== k;
+      nav.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.k === k));
+    };
+    const nav = h('nav', { class: 'ptabs' }, panes.map(([k, l]) => h('button', { 'data-k': k, onClick: () => show(k) }, l)));
+    if (panes.length > 1) body.append(nav);
+    body.append(...panes.map(([, , el]) => el));
+    show(this.propTab);
 
     // commentaires liés
     const cs = a.project.comments.filter((c) => c.objId === o.id);

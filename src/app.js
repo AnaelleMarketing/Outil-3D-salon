@@ -546,6 +546,10 @@ export class App {
         // un objet posé sur un support (plateau de guéridon…) n'est pas en collision avec lui
         if (isSupport(a) && fb.y0 >= this.supportSurface(a, fa) - 0.01) continue;
         if (isSupport(b) && fa.y0 >= this.supportSurface(b, fb) - 0.01) continue;
+        // une chaise ou un tabouret glissé sous une table n'est pas une collision
+        const SEATS = ['chair', 'stool', 'barChair'];
+        const TABLES = ['mangeDebout', 'tableHaute', 'lowTable', 'table'];
+        if ((SEATS.includes(a.type) && TABLES.includes(b.type)) || (SEATS.includes(b.type) && TABLES.includes(a.type))) continue;
         if (!polyOverlap(fa.poly, fb.poly)) continue;
         const pa = this.parts(a);
         const pb = this.parts(b);
