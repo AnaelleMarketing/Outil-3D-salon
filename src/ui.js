@@ -410,7 +410,11 @@ export class UI {
       );
     }
     // barre d'état discrète : l'aide de navigation au survol du « ? », l'état d'enregistrement à droite
-    this.status.replaceChildren(h('span', { class: 'help', title: hint, 'aria-label': hint }, '?'), h('span', { class: 'sp' }), (this.syncEl = h('span', { class: 'sync' })), (this.saveEl = h('span', { class: 'save' }, a.readOnly ? 'Lecture seule' : 'Enregistré ✓')));
+    const [titre, ...gestes] = (hint || '').split(' · ');
+    const helpPop = h('div', { class: 'help-pop', hidden: !this.helpOpen }, h('b', {}, titre), h('ul', {}, gestes.map((g) => h('li', {}, g.charAt(0).toUpperCase() + g.slice(1)))), h('button', { class: 'btn sm', onClick: () => ((this.helpOpen = false), this.renderHud(), this.helpDialog()) }, 'Tous les raccourcis'));
+    this.status.replaceChildren(
+      h('span', { class: 'help-wrap' }, h('button', { class: 'help' + (this.helpOpen ? ' on' : ''), title: 'Aide à la navigation', onClick: () => ((this.helpOpen = !this.helpOpen), this.renderHud()) }, '?'), helpPop),
+      h('span', { class: 'sp' }), (this.syncEl = h('span', { class: 'sync' })), (this.saveEl = h('span', { class: 'save' }, a.readOnly ? 'Lecture seule' : 'Enregistré ✓')));
     this.setSyncState(this.syncState);
   }
 
