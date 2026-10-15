@@ -69,7 +69,7 @@ button { cursor: pointer; }
 .tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--line); flex: none; }
 .tabs button { flex: 1 0 auto; border: 0; background: none; padding: 11px 4px 9px; color: var(--ink2); border-bottom: 2px solid transparent; font-size: 12.5px; white-space: nowrap; }
 .tabs button.on { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
-.scroll { flex: 1; overflow: auto; padding: 12px; }
+.scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 14px 16px; }
 .viewport { flex: 1; position: relative; min-width: 0; overflow: hidden; background: #2c3e52; }
 .viewport canvas { display: block; touch-action: none; }
 .viewport.drop::after { content: 'Déposer ici'; position: absolute; inset: 10px; border: 2px dashed rgba(255,255,255,.7); border-radius: 12px; display: grid; place-items: center; color: #fff; font-size: 18px; pointer-events: none; background: rgba(47,111,143,.15); }
@@ -91,7 +91,9 @@ button { cursor: pointer; }
 .alert-badge.err { background: var(--err); color: #fff; }
 .alert-badge.warn { background: #ffb020; color: #222; }
 .hud-btn { background: rgba(255,255,255,.92); color: var(--ink); font-weight: 500; }
-.status { position: absolute; left: 0; right: 0; bottom: 0; display: flex; gap: 14px; padding: 6px 12px; font-size: 11.5px; color: rgba(255,255,255,.85); background: linear-gradient(transparent, rgba(10,20,30,.55)); pointer-events: none; }
+.status { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 14px; padding: 8px 14px; font-size: 11.5px; color: rgba(255,255,255,.8); pointer-events: none; }
+.status .help { pointer-events: auto; cursor: help; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.88); color: var(--ink2); font-weight: 700; font-size: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.status .save { text-shadow: 0 1px 3px rgba(0,0,0,.5); }
 .status .sp { flex: 1; }
 .tool-hint { display: none; position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: #ffd60a; color: #222; padding: 7px 14px; border-radius: 16px; font-weight: 600; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
 
@@ -133,14 +135,14 @@ input[type=color] { width: 44px; height: 30px; border: 1px solid var(--line); bo
 .search { margin-bottom: 10px; height: 34px !important; }
 
 /* ---------- bibliothèque ---------- */
-details { border-bottom: 1px solid var(--line2); padding: 4px 0 8px; }
-summary { cursor: pointer; font-weight: 600; padding: 8px 2px; list-style: none; display: flex; align-items: center; gap: 6px; }
+details { border-bottom: 1px solid var(--line2); padding: 6px 0 12px; }
+summary { cursor: pointer; font-weight: 600; padding: 10px 2px; list-style: none; display: flex; align-items: center; gap: 6px; }
 summary::-webkit-details-marker { display: none; }
 summary::before { content: '›'; color: var(--ink3); display: inline-block; width: 10px; transition: transform .15s; }
 details[open] > summary::before { transform: rotate(90deg); }
 .count { background: var(--bg); color: var(--ink3); border-radius: 10px; padding: 0 7px; font-size: 11px; font-weight: 500; }
 .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.card { position: relative; border: 1px solid var(--line); border-radius: var(--r); background: #fff; overflow: hidden; cursor: grab; transition: box-shadow .12s, border-color .12s; }
+.card { position: relative; min-width: 0; border: 1px solid var(--line); border-radius: var(--r); background: #fff; overflow: hidden; cursor: grab; transition: box-shadow .12s, border-color .12s; }
 .card:hover { border-color: #9cc3d6; box-shadow: 0 3px 10px rgba(20,40,60,.1); }
 .card .thumb { aspect-ratio: 4 / 3; background: linear-gradient(#f7f9fa, #e9edf0); display: grid; place-items: center; overflow: hidden; }
 .card .thumb img { width: 100%; height: 100%; object-fit: contain; }
@@ -276,7 +278,8 @@ body.readonly .grp:has(.tb[title^='Annuler']) { display: none; }
 
 /* ---------- configurateur (étapes, style, sol, budget) ---------- */
 .center { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.stepbar { flex: none; display: flex; align-items: center; gap: 2px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--line); overflow-x: auto; }
+.stepbar { flex: none; display: flex; align-items: center; gap: 2px; padding: 6px 10px; background: var(--panel); border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+.stepbar::-webkit-scrollbar { display: none; }
 .stepbar .sp { flex: 1; }
 .step { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 5px 9px; border-radius: 16px; color: var(--ink2); white-space: nowrap; font-size: 12.5px; }
 .step:hover { background: var(--bg); }

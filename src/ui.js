@@ -409,7 +409,8 @@ export class UI {
         b('⟳', 'Tourner autour du stand vers la droite (45°)', () => a.viewer.turn(45), 'rot'),
       );
     }
-    this.status.replaceChildren(h('span', {}, hint), h('span', { class: 'sp' }), h('span', { class: 'fps' }, (a.viewer?.fps || '–') + ' img/s'), h('span', {}, a.project.objects.length + ' objets'), (this.syncEl = h('span', { class: 'sync' })), (this.saveEl = h('span', { class: 'save' }, a.readOnly ? 'Lecture seule' : 'Enregistré')));
+    // barre d'état discrète : l'aide de navigation au survol du « ? », l'état d'enregistrement à droite
+    this.status.replaceChildren(h('span', { class: 'help', title: hint, 'aria-label': hint }, '?'), h('span', { class: 'sp' }), (this.syncEl = h('span', { class: 'sync' })), (this.saveEl = h('span', { class: 'save' }, a.readOnly ? 'Lecture seule' : 'Enregistré ✓')));
     this.setSyncState(this.syncState);
   }
 
@@ -500,7 +501,8 @@ export class UI {
       if (!cards.length) return;
       if (F && !F.includes(title)) return;
       const open = q || this.openSections.has(title);
-      const det = h('details', { open }, h('summary', {}, title, h('span', { class: 'count' }, cards.length)), h('div', { class: 'cards' }, cards));
+      const n = cards.filter((c) => c.classList?.contains('card')).length; // sans les intertitres de gamme
+      const det = h('details', { open }, h('summary', {}, title, h('span', { class: 'count' }, n)), h('div', { class: 'cards' }, cards));
       det.addEventListener('toggle', () => (det.open ? this.openSections.add(title) : this.openSections.delete(title)));
       body.append(det);
     };
@@ -518,7 +520,6 @@ export class UI {
       }
     }
     if (prods.length) section('Produits Spengler', brandCards);
-    else if (!q && (!F || F.includes('Produits Spengler'))) body.append(h('details', { open: true }, h('summary', {}, 'Produits Spengler'), h('p', { class: 'muted' }, 'Aucun produit encore. Créez-en avec « + Nouveau produit » (photo détourée, pack-shot ou modèle 3D), ou enregistrez un objet sélectionné dans la bibliothèque.')));
     const mine = a.library.filter((it) => it.kind !== 'produit' && match(it.label));
     section(
       'Mes éléments',
@@ -974,7 +975,7 @@ export class UI {
       const p = a.project;
       const st = p.stand;
       body.append(
-        h('div', { class: 'empty' }, h('b', {}, 'Aucun objet sélectionné'), h('p', {}, 'Cliquez sur un objet dans la scène, ou ajoutez-en depuis la bibliothèque (clic ou glisser-déposer).')),
+        h('div', { class: 'empty' }, h('b', {}, 'Aucun objet sélectionné'), h('p', {}, 'Cliquez sur un élément du stand pour le modifier.')),
         h(
           'div',
           { class: 'stats' },
@@ -1764,13 +1765,13 @@ export class UI {
     this.stepbar.replaceChildren(
       ...STEPS.map((st, i) => h('button', { class: 'step' + (i === this.step ? ' on' : '') + (i < this.step ? ' done' : ''), onClick: () => this.goStep(i) }, st.label)),
       h('span', { class: 'sp' }),
-      h('button', { class: 'btn sm coach-toggle' + (this.coachOpen ? ' on' : ''), title: 'Afficher ou masquer le conseil de l’étape', onClick: () => ((this.coachOpen = !this.coachOpen), this.renderSteps()) }, 'ⓘ Conseil'),
-      this.step < STEPS.length - 1 ? h('button', { class: 'btn sm primary', onClick: () => this.goStep(this.step + 1) }, 'Étape suivante →') : null,
+      h('button', { class: 'btn sm coach-toggle' + (this.coachOpen ? ' on' : ''), title: 'Afficher ou masquer le conseil de l’étape', onClick: () => ((this.coachOpen = !this.coachOpen), this.renderSteps()) }, 'ⓘ'),
+      this.step < STEPS.length - 1 ? h('button', { class: 'btn sm primary', title: 'Étape suivante : ' + STEPS[this.step + 1].label, onClick: () => this.goStep(this.step + 1) }, 'Suivante →') : null,
     );
     const st = STEPS[this.step];
     this.coach.style.display = this.coachOpen && !a.readOnly ? 'block' : 'none';
     this.coach.replaceChildren(
-      h('div', { class: 'coach-h' }, h('b', {}, `Étape ${this.step + 1} / ${STEPS.length} · ${st.label}`), h('button', { class: 'x', title: 'Masquer les conseils', onClick: () => ((this.coachOpen = false), this.renderSteps()) }, '×')),
+      h('div', { class: 'coach-h' }, h('b', {}, st.label), h('button', { class: 'x', title: 'Masquer les conseils', onClick: () => ((this.coachOpen = false), this.renderSteps()) }, '×')),
       h('p', {}, st.tip),
     );
   }
