@@ -325,6 +325,9 @@ body.readonly .grp:has(.tb[title^='Annuler']) { display: none; }
 .price-row input { width: 80px; height: 28px; border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; text-align: right; }
 .right .tabs button { font-size: 12px; padding-left: 2px; padding-right: 2px; }
 .left .tabs button { font-size: 12px; }
+/* six onglets à gauche : toujours deux lignes de trois, quel que soit l'écran ou le zoom du navigateur */
+.left .tabs { display: grid; grid-template-columns: repeat(3, 1fr); }
+.left .tabs button { padding: 8px 4px 7px; }
 
 /* ---------- page d'accueil ---------- */
 .splash { position: fixed; inset: 0; z-index: 500; overflow: hidden; color: #fff;
