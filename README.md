@@ -34,6 +34,13 @@ Côté serveur (PHP, dans `public/`) : `gate.php` affiche la page de connexion e
 `api/collab.php` gère le partage de projets entre comptes. Les projets partagés sont stockés dans `data/`
 sur le serveur (non accessible depuis le web) ; `lib/config.php` est généré au déploiement à partir des secrets.
 
+**Sauvegarde** : chaque nuit, le workflow `.github/workflows/sauvegarde.yml` télécharge `data/` par FTP et le garde
+90 jours (GitHub › Actions › « Sauvegarde des projets partagés » › artefact `projets-partages-…`).
+Pour restaurer : télécharger l'artefact, le décompresser, puis renvoyer son dossier `data/` dans `stand3d/data/` par FTP.
+
+**Accès** : l'IT limite le site au réseau / VPN Spengler (`Require ip` en fin de `public/.htaccess`, à conserver) ;
+ailleurs, la page `acces/` (« Accès réservé ») remplace l'erreur 403.
+
 Les projets, visuels et la bibliothèque sont enregistrés automatiquement dans le navigateur (IndexedDB),
 avec un historique de versions (toutes les 10 min ou à la demande).
 

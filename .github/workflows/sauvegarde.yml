@@ -1,0 +1,40 @@
+# Sauvegarde quotidienne des projets partagés (dossier data/ du site sur OVH) :
+# téléchargée par FTP et conservée 90 jours dans GitHub (onglet Actions > Sauvegarde des projets partagés > artefact).
+# Utilise le même secret FTP_PASSWORD que le déploiement.
+name: Sauvegarde des projets partagés
+
+on:
+  schedule:
+    - cron: '30 2 * * *' # chaque nuit vers 3h30 / 4h30 (heure de Paris)
+  workflow_dispatch:
+
+jobs:
+  sauvegarde:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Téléchargement de data/ depuis OVH
+        id: ftp
+        env:
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+          mkdir -p sauvegarde
+          # connexion FTP impossible (mot de passe changé…) : la sauvegarde échoue et GitHub prévient par e-mail
+          lftp -u "gkslnyu-acintract,$FTP_PASSWORD" ftp.cluster131.hosting.ovh.net -e "set ftp:ssl-allow yes; set ssl:verify-certificate no; cls -1 stand3d/ ; quit" > /dev/null
+          # data/ n'existe qu'une fois un premier projet partagé : sinon, rien à sauvegarder (pas une erreur)
+          if lftp -u "gkslnyu-acintract,$FTP_PASSWORD" ftp.cluster131.hosting.ovh.net -e "set ftp:ssl-allow yes; set ssl:verify-certificate no; cls -1 stand3d/data/ ; quit" > /dev/null 2>&1; then
+            lftp -u "gkslnyu-acintract,$FTP_PASSWORD" ftp.cluster131.hosting.ovh.net -e "set ftp:ssl-allow yes; set ssl:verify-certificate no; mirror --verbose stand3d/data sauvegarde/data; quit"
+            echo "Fichiers sauvegardés : $(find sauvegarde -type f | wc -l)"
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Aucun projet partagé sur le serveur pour l'instant : rien à sauvegarder."
+          fi
+
+      - name: Conservation 90 jours
+        if: steps.ftp.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: projets-partages-${{ github.run_number }}
+          path: sauvegarde/
+          retention-days: 90
+          include-hidden-files: true

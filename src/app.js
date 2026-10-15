@@ -4,7 +4,7 @@ import { get, set, del } from './store.js';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { Viewer } from './viewer.js';
 import * as assets from './assets.js';
-import { TYPES, buildObject, fromCatalog, isSupport, isStackable, noCollide, ALL_IMAGE_KEYS } from './objects.js';
+import { TYPES, CATALOG, buildObject, fromCatalog, isSupport, isStackable, noCollide, ALL_IMAGE_KEYS } from './objects.js';
 import { floorMaterial } from './materials.js';
 import { medicaProject, tradexProject, registerBuiltins, emptyProject } from './templates.js';
 import { uid, rad, deg, h } from './util.js';
@@ -112,6 +112,11 @@ export class App {
     }
     const base = emptyProject();
     p = { ...base, ...p, stand: { ...base.stand, ...p.stand } };
+    // objets sans dimensions (anciens projets) : dimensions par défaut du catalogue pour ce type
+    for (const o of p.objects) {
+      const def = CATALOG.find((e) => e.type === o.type)?.d;
+      if (def) for (const k of ['w', 'd', 'h']) if (!(o[k] > 0) && def[k] > 0) o[k] = def[k];
+    }
     this.project = p;
     for (const [, e] of this.cache) this.disposeGroup(e.group);
     this.cache.clear();
