@@ -11,6 +11,7 @@ import { SPIRIT_CHIPS, generateProposals, renderPreview } from './assistant.js';
 import { showSplash } from './splash.js';
 import * as X from './exporters.js';
 import { get } from './store.js';
+import { restoreBackup } from './restore.js';
 
 const SYSTEM_FONTS = ['Helvetica Neue', 'Avenir Next', 'Avenir Next Condensed', 'Arial', 'Futura', 'Gill Sans', 'Georgia', 'Times New Roman', 'Verdana'];
 const ICON = {
@@ -1594,6 +1595,16 @@ export class UI {
           h('button', { class: 'btn primary', onClick: () => (close(), this.newProjectDialog()) }, '+ Nouveau stand'),
           h('button', { class: 'btn', onClick: async () => { const f = await pickFile('.json'); if (!f) return; close(); this.run('Import du projet', () => X.importProject(a, f)); } }, 'Importer un fichier projet'),
           h('button', { class: 'btn', onClick: () => (close(), this.versionsDialog()) }, 'Versions du projet ouvert'),
+          h('button', { class: 'btn', title: 'Fichier sauvegarde-stand3d.json récupéré sur l’ancienne adresse Vercel', onClick: async () => {
+            const f = await pickFile('.json');
+            if (!f) return;
+            close();
+            this.run('Restauration de la sauvegarde', async () => {
+              const n = await restoreBackup(f);
+              this.toast(`${n} projet(s) récupéré(s). Rechargement…`);
+              setTimeout(() => location.reload(), 1500);
+            });
+          } }, 'Restaurer une sauvegarde de l’ancien site'),
         ),
         list,
       ),
