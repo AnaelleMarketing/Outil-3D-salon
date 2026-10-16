@@ -1,5 +1,6 @@
 // Page « accès réservé » (erreur 403 hors réseau Spengler) : construite à part dans dist/acces/,
-// pour pouvoir l'autoriser à tous sans exposer le code de l'outil.
+// pour pouvoir l'autoriser à tous sans exposer le code de l'outil. Elle est servie à l'adresse demandée,
+// d'où les chemins absolus. Ne rien y écrire qui renseigne sur la façon d'obtenir l'accès (demande de l'IT).
 import { defineConfig } from 'vite';
 import { fileURLToPath } from 'node:url';
 
