@@ -1223,6 +1223,9 @@ D.boiteSpeculums = (o) => {
   return g;
 };
 
+/** Instruments modélisés couchés (manche le long de l'axe avant-arrière, tête vers l'arrière) qu'on peut aussi poser debout */
+export const POSABLE = new Set(['otoscope', 'dermatoscope', 'ophtalmo', 'penlight', 'thermoCrayon', 'marteau']);
+
 export function buildDevice(o) {
   const fn = D[o.model];
   let g = fn ? fn(o) : new THREE.Group();
@@ -1230,6 +1233,13 @@ export function buildDevice(o) {
   if (o.scale && o.scale !== 1) {
     const inner = g;
     inner.scale.setScalar(o.scale);
+    g = new THREE.Group();
+    g.add(inner);
+  }
+  // debout : l'instrument couché se redresse sur son manche, tête en haut (lentille du dermatoscope vers l'avant)
+  if (o.pose === 'debout' && POSABLE.has(o.model)) {
+    const inner = g;
+    inner.rotation.x = Math.PI / 2;
     g = new THREE.Group();
     g.add(inner);
   }

@@ -8,6 +8,7 @@ import { TYPES, CATALOG, buildObject, fromCatalog, isSupport, isStackable, noCol
 import { floorMaterial } from './materials.js';
 import { medicaProject, tradexProject, registerBuiltins, emptyProject } from './templates.js';
 import { uid, rad, deg, h } from './util.js';
+import { POSABLE } from './devices.js';
 import { UI } from './ui.js';
 import { Collab } from './collab.js';
 
@@ -1355,6 +1356,22 @@ export class App {
       if (isStackable(o)) o.y = this.supportTop(o.x, o.z, o.id);
     });
     this.commit('Répartir');
+  }
+
+  /** Instruments de la sélection qui peuvent être posés couchés ou debout (otoscopes, dermatoscopes…) */
+  posableSelection() {
+    return this.selection.map((i) => this.obj(i)).filter((o) => o.type === 'device' && POSABLE.has(o.model));
+  }
+
+  /** Couché ou debout pour les instruments de la sélection */
+  setPose(pose) {
+    const os = this.posableSelection();
+    if (!os.length || this.readOnly) return;
+    for (const o of os) o.pose = pose;
+    this.sync();
+    // posé sur un meuble : reste sur son plateau (la hauteur du produit change)
+    for (const o of os) o.y = this.supportTop(o.x, o.z, o.id);
+    this.commit(pose === 'debout' ? 'Mettre debout' : 'Coucher');
   }
 
   /** Donne à toute la sélection l'orientation de l'élément principal */

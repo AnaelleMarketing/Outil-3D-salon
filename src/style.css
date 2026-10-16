@@ -489,6 +489,8 @@ body.hide-left .left, body.hide-right .right { display: none; }
 .ptabs { display: flex; gap: 4px; margin: 12px 0 4px; padding: 3px; background: var(--bg); border-radius: var(--r); }
 .ptabs button { flex: 1; border: 0; background: transparent; padding: 6px 4px; border-radius: 6px; color: var(--ink2); font-size: 12.5px; }
 .ptabs button.on { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.pose-seg { display: flex; }
+.pose-seg button { flex: 1; }
 /* menu du clic droit */
 .menu.ctx { position: fixed; right: auto; z-index: 450; min-width: 230px; }
 .menu button.danger { color: var(--err); }

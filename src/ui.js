@@ -6,7 +6,7 @@ import { FINISHES, FLOORS, FLOOR_PRESETS, floorSwatch, sameFloor, WOOD_LABELS } 
 import { STEPS, STYLES, STYLE_GROUPS, SIZE_PRESETS, budget, prices, fmtEUR, fmtQty } from './planner.js';
 import { TEMPLATES, OPEN_TYPES, openTypeOf, basicProject } from './templates.js';
 import { thumbFor } from './thumbs.js';
-import { DEVICE_PALETTES } from './devices.js';
+import { DEVICE_PALETTES, POSABLE } from './devices.js';
 import { SPIRIT_CHIPS, generateProposals, renderPreview } from './assistant.js';
 import { showSplash } from './splash.js';
 import * as X from './exporters.js';
@@ -1090,6 +1090,13 @@ export class UI {
       item('rotL', 'Pivoter de −90°', () => a.rotate(-90)),
       item('rotR', 'Pivoter de +90°', () => a.rotate(90)),
       item(null, 'Poser sur un meuble…', () => a.setTool('poseSur')),
+      ...(() => {
+        // otoscopes, dermatoscopes… : couché / debout
+        const ps = a.posableSelection();
+        if (!ps.length) return [];
+        if (n > 1) return [item(null, 'Tout coucher', () => a.setPose('couche')), item(null, 'Tout mettre debout', () => a.setPose('debout'))];
+        return [ps[0].pose === 'debout' ? item(null, 'Coucher', () => a.setPose('couche')) : item(null, 'Mettre debout', () => a.setPose('debout'))];
+      })(),
       n > 1 ? h('hr') : null,
       n > 1 ? item(null, 'Aligner sur une ligne', () => a.alignSelection()) : null,
       n > 2 ? item(null, 'Espacer régulièrement', () => a.distributeSelection()) : null,
@@ -1141,6 +1148,8 @@ export class UI {
         act('Espacer régulièrement', () => a.distributeSelection(), 'Même écart entre les éléments, du premier au dernier (3 éléments minimum)', n < 3),
         act('Même orientation', () => a.sameRotation(), 'Tous orientés comme l’élément principal (cadre bleu foncé)'),
         act('Poser sur un meuble…', () => a.setTool('poseSur'), 'Puis cliquez sur le comptoir, le socle ou la table : les éléments sont répartis sur sa largeur'),
+        a.posableSelection().length ? act('Tout coucher', () => a.setPose('couche'), 'Otoscopes, dermatoscopes, lampes stylo… de la sélection posés à plat') : null,
+        a.posableSelection().length ? act('Tout mettre debout', () => a.setPose('debout'), 'Otoscopes, dermatoscopes, lampes stylo… de la sélection posés sur leur manche') : null,
       ),
       h('h4', {}, 'Éléments'),
       h('ul', { class: 'outliner content-list' }, ids.map((id) => {
@@ -1255,6 +1264,16 @@ export class UI {
       field('Zone / calque', h('input', { list: 'zones-dl', 'data-key': 'zone', value: o.zone || '', placeholder: 'ex. Cardio', disabled: ro, onChange: (e) => upd({ zone: e.target.value.trim() }) })),
       h('datalist', { id: 'zones-dl' }, zones.map((z) => h('option', { value: z }))),
     );
+    // otoscopes, dermatoscopes… : présentation couchée ou debout
+    if (o.type === 'device' && POSABLE.has(o.model)) {
+      const cur = o.pose === 'debout' ? 'debout' : 'couche';
+      paneDims.append(
+        field(
+          'Présentation',
+          h('div', { class: 'seg pose-seg' }, [['couche', 'Couché'], ['debout', 'Debout']].map(([v, l]) => h('button', { class: cur === v ? 'on' : '', disabled: ro, onClick: () => a.setPose(v) }, l))),
+        ),
+      );
+    }
 
     // dimensions & finitions
     const dimsBox = h('div', { class: 'grid2' });
