@@ -16,7 +16,6 @@ export function showSplash({ ready, visite = false }) {
       h('h1', {}, 'Conception de stand 3D'),
       h('p', {}, 'Concevez, aménagez et visitez vos stands de salon avant de les valider avec le standiste.'),
       btn,
-      h('div', { class: 'splash-feats' }, ['Stand sur mesure', 'Mobilier & produits', 'Visuels de marque', 'Visite 3D & exports'].map((t) => h('span', {}, t))),
     ),
     h('footer', { class: 'splash-foot' }, '© 2026 Outil de conception 3D – Propriétaire : Anaelle Cintract · ', h('a', { href: 'mentions-legales.html', target: '_blank', rel: 'noopener' }, 'Mentions légales et conditions d’utilisation')),
   );

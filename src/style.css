@@ -390,8 +390,6 @@ body.readonly .grp:has(.tb[title^='Annuler']) { display: none; }
 .splash-btn:hover .arrow { transform: translateX(4px); }
 .splash-btn .spin { width: 16px; height: 16px; border: 2px solid #b6c8cd; border-top-color: #1d5470; border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.splash-feats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 36px; }
-.splash-feats span { font-size: 12.5px; padding: 5px 12px; border-radius: 14px; border: 1px solid rgba(82,227,232,.4); color: #d3e2e7; }
 .splash-foot { position: absolute; z-index: 2; left: 8vw; bottom: 24px; font-size: 12px; letter-spacing: .08em; color: rgba(211,226,231,.65); }
 @media (max-width: 900px) {
   .splash::after { background: rgba(14,15,38,.6); }
@@ -535,3 +533,12 @@ body.hide-left .left, body.hide-right .right { display: none; }
 .nav3d button.rot { font-size: 16px; padding: 3px 10px; color: var(--accent); }
 .nav3d button.rot:hover { color: #fff; }
 @media (max-width: 700px) { .nav3d button { padding: 6px 8px; font-size: 11px; } }
+/* page d'accueil sur un écran peu haut : contenu resserré, jamais sous le pied de page */
+@media (max-height: 720px) {
+  .splash-brand { margin-bottom: 18px; }
+  .splash-brand img { width: 48px; }
+  .splash-brand .b1 { font-size: 34px; }
+  .splash h1 { font-size: clamp(28px, 4.2vw, 44px); margin-bottom: 10px; }
+  .splash p { margin-bottom: 20px; }
+  .splash-content { top: calc(50% - 20px); }
+}

@@ -19,8 +19,6 @@ html, body { margin: 0; height: 100%; background: #0e0f26; font-family: -apple-s
 .splash-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(0,0,0,.38); }
 .splash-btn .arrow { font-size: 20px; transition: transform .15s; }
 .splash-btn:hover .arrow { transform: translateX(4px); }
-.splash-feats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 36px; }
-.splash-feats span { font-size: 12.5px; padding: 5px 12px; border-radius: 14px; border: 1px solid rgba(82,227,232,.4); color: #d3e2e7; }
 .splash-foot { position: absolute; z-index: 2; left: 8vw; bottom: 24px; font-size: 12px; letter-spacing: .08em; color: rgba(211,226,231,.65); }
 @media (max-width: 900px) {
   .splash::after { background: rgba(14,15,38,.6); }
